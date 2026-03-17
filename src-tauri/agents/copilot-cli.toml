@@ -1,0 +1,9 @@
+slug = "copilot-cli"
+name = "GitHub Copilot CLI"
+enabled = true
+global_paths = ["~/.copilot/skills"]
+skill_format = "skill-md"
+cli_command = "copilot"
+install_command = "npm install -g @github/copilot"
+install_docs_url = "https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-in-the-cli"
+install_source_label = "official-docs"

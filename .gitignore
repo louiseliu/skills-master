@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env*
+
+# Local AI agent settings
+.claude/
+.cursor/
+
+# OS files
+Thumbs.db

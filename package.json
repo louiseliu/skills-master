@@ -1,7 +1,13 @@
 {
-  "name": "tauri-app",
-  "private": true,
+  "name": "agent-skills",
   "version": "0.1.0",
+  "description": "A desktop app for managing AI agent skills across Claude Code, Cursor, Copilot, Gemini CLI, and more",
+  "license": "MIT",
+  "author": "AgentSkills Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropics/agent-skills"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,13 +20,16 @@
     "@fontsource-variable/geist": "^5.2.8",
     "@tanstack/react-query": "^5.90.21",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-opener": "^2.5.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
     "shadcn": "^4.0.8",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0",

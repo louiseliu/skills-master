@@ -1,0 +1,232 @@
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+use crate::installer::install::install_skill_from_path;
+use crate::marketplace::clawhub::fetch_clawhub as fetch_clawhub_impl;
+use crate::marketplace::skillssh::{fetch_skillssh as fetch_skillssh_impl, search_skillssh};
+use crate::marketplace::MarketplaceSkill;
+use crate::parser::skillmd::parse_skill_md_file;
+use crate::registry::loader::{detect_agents, load_agent_configs};
+
+fn agents_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("agents")
+}
+
+fn load_detected_agents() -> Result<Vec<crate::models::agent::AgentConfig>, String> {
+    let cfg = load_agent_configs(&agents_dir()).map_err(|e| e.to_string())?;
+    Ok(detect_agents(&cfg))
+}
+
+#[tauri::command]
+pub fn fetch_skillssh(sort: String, page: u32) -> Result<Vec<MarketplaceSkill>, String> {
+    fetch_skillssh_impl(&sort, page).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn fetch_clawhub(
+    endpoint: String,
+    params: HashMap<String, String>,
+) -> Result<Vec<MarketplaceSkill>, String> {
+    fetch_clawhub_impl(&endpoint, &params).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn search_marketplace(query: String, source: String) -> Result<Vec<MarketplaceSkill>, String> {
+    match source.as_str() {
+        "skills.sh" => search_skillssh(&query).map_err(|e| e.to_string()),
+        "clawhub" => {
+            crate::marketplace::clawhub::search_clawhub(&query).map_err(|e| e.to_string())
+        }
+        _ => Ok(Vec::new()),
+    }
+}
+
+/// Install a marketplace skill, following the SkillDeck strategy:
+/// 1. Clone the repo once
+/// 2. Scan all SKILL.md files in the repo
+/// 3. Match the target skill by name/directory
+/// 4. Install to each target agent from the matched path
+/// 5. Clean up the temp clone
+#[tauri::command]
+pub async fn install_from_marketplace(
+    skill: MarketplaceSkill,
+    target_agents: Vec<String>,
+) -> Result<(), String> {
+    // Offload the heavy git clone + file scan to a blocking thread
+    // so the Tauri IPC channel stays responsive for UI updates
+    tauri::async_runtime::spawn_blocking(move || {
+        install_from_marketplace_sync(skill, target_agents)
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))?
+}
+
+fn install_from_marketplace_sync(
+    skill: MarketplaceSkill,
+    target_agents: Vec<String>,
+) -> Result<(), String> {
+    let repo_url = skill
+        .repository
+        .ok_or_else(|| "marketplace item has no repository url".to_string())?;
+    let agents = load_detected_agents()?;
+
+    // 1. Clone the repo once to a temp directory
+    let temp_dir = std::env::temp_dir().join(format!(
+        "skills-app-marketplace-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock drift")
+            .as_millis()
+    ));
+    git2::Repository::clone(&repo_url, &temp_dir)
+        .map_err(|e| format!("git clone failed: {e}"))?;
+
+    // 2. Scan the cloned repo for SKILL.md files and find the matching skill
+    let skill_dir = find_skill_in_repo(&temp_dir, &skill.name);
+
+    let result = match skill_dir {
+        Some(dir) => {
+            // 3. Install from the discovered path to each agent
+            let mut errors: Vec<String> = Vec::new();
+            for agent_slug in &target_agents {
+                if let Err(e) = install_skill_from_path(&dir, agent_slug, &agents) {
+                    errors.push(format!("{agent_slug}: {e}"));
+                }
+            }
+            if errors.len() == target_agents.len() {
+                // All failed
+                Err(errors.join("; "))
+            } else {
+                Ok(())
+            }
+        }
+        None => {
+            // Fallback: no matching skill found via scan, try repo root
+            // This handles single-skill repos where the repo IS the skill
+            let mut errors: Vec<String> = Vec::new();
+            for agent_slug in &target_agents {
+                if let Err(e) = install_skill_from_path(&temp_dir, agent_slug, &agents) {
+                    errors.push(format!("{agent_slug}: {e}"));
+                }
+            }
+            if errors.len() == target_agents.len() {
+                Err(errors.join("; "))
+            } else {
+                Ok(())
+            }
+        }
+    };
+
+    // 4. Clean up temp directory
+    let _ = std::fs::remove_dir_all(&temp_dir);
+
+    result
+}
+
+/// Walk the cloned repo directory, find all SKILL.md files, and match the target skill.
+///
+/// Matching strategy (in priority order):
+/// 1. Directory name exactly matches skill name (e.g. `skills/find-skills/` for "find-skills")
+/// 2. SKILL.md frontmatter `name` field matches skill name
+/// 3. Directory name is a substring match (e.g. `skills/remotion/` for "remotion-best-practices")
+fn find_skill_in_repo(repo_dir: &std::path::Path, skill_name: &str) -> Option<PathBuf> {
+    let skill_name_lower = skill_name.to_lowercase();
+
+    // Collect all directories containing a SKILL.md
+    let mut candidates: Vec<(PathBuf, Option<String>)> = Vec::new(); // (dir, parsed_name)
+
+    fn walk(dir: &std::path::Path, candidates: &mut Vec<(PathBuf, Option<String>)>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            // Skip .git directory
+            if name == ".git" {
+                continue;
+            }
+            if path.is_dir() {
+                let skill_md = path.join("SKILL.md");
+                if skill_md.is_file() {
+                    // Parse frontmatter to get the skill name
+                    let parsed_name = parse_skill_md_file(&skill_md)
+                        .ok()
+                        .and_then(|p| p.name);
+                    candidates.push((path.clone(), parsed_name));
+                }
+                // Continue walking subdirectories
+                walk(&path, candidates);
+            }
+        }
+    }
+
+    walk(repo_dir, &mut candidates);
+
+    // Also check repo root for SKILL.md
+    let root_skill_md = repo_dir.join("SKILL.md");
+    if root_skill_md.is_file() {
+        let parsed_name = parse_skill_md_file(&root_skill_md)
+            .ok()
+            .and_then(|p| p.name);
+        candidates.push((repo_dir.to_path_buf(), parsed_name));
+    }
+
+    // Match 1: exact directory name match
+    if let Some((dir, _)) = candidates.iter().find(|(dir, _)| {
+        dir.file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| n.to_lowercase() == skill_name_lower)
+            .unwrap_or(false)
+    }) {
+        return Some(dir.clone());
+    }
+
+    // Match 2: frontmatter `name` field matches
+    if let Some((dir, _)) = candidates.iter().find(|(_, parsed_name)| {
+        parsed_name
+            .as_ref()
+            .map(|n| n.to_lowercase() == skill_name_lower)
+            .unwrap_or(false)
+    }) {
+        return Some(dir.clone());
+    }
+
+    // Match 3: directory name is contained in skill name
+    //   e.g. dir "remotion" matches skill "remotion-best-practices"
+    //   or skill name contains the dir name as a component
+    if let Some((dir, _)) = candidates.iter().find(|(dir, _)| {
+        dir.file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| {
+                let n_lower = n.to_lowercase();
+                // dir name is a prefix of skill name (e.g. "remotion" → "remotion-best-practices")
+                skill_name_lower.starts_with(&format!("{n_lower}-"))
+                    || skill_name_lower.starts_with(&format!("{n_lower}_"))
+                    || skill_name_lower == n_lower
+            })
+            .unwrap_or(false)
+    }) {
+        return Some(dir.clone());
+    }
+
+    // Match 4: frontmatter name contains or is contained by skill name
+    if let Some((dir, _)) = candidates.iter().find(|(_, parsed_name)| {
+        parsed_name
+            .as_ref()
+            .map(|n| {
+                let n_lower = n.to_lowercase();
+                n_lower.contains(&skill_name_lower) || skill_name_lower.contains(&n_lower)
+            })
+            .unwrap_or(false)
+    }) {
+        return Some(dir.clone());
+    }
+
+    // Single skill in the repo — just use it if there's exactly one candidate
+    if candidates.len() == 1 {
+        return Some(candidates.into_iter().next().unwrap().0);
+    }
+
+    None
+}

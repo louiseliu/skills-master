@@ -1,0 +1,9 @@
+slug = "opencode"
+name = "OpenCode"
+enabled = true
+global_paths = ["~/.opencode/skills"]
+skill_format = "skill-md"
+cli_command = "opencode"
+install_command = "curl -fsSL https://opencode.ai/install | bash"
+install_docs_url = "https://opencode.ai/docs/cli/"
+install_source_label = "official-readme"

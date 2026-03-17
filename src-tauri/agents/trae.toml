@@ -1,0 +1,9 @@
+slug = "trae"
+name = "Trae"
+enabled = true
+global_paths = ["~/.trae/skills"]
+skill_format = "skill-md"
+cli_command = "trae"
+install_command = "brew install --cask trae"
+install_docs_url = "https://formulae.brew.sh/cask/trae"
+install_source_label = "homebrew-cask"

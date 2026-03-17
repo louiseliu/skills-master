@@ -1,0 +1,9 @@
+slug = "cline"
+name = "Cline"
+enabled = true
+global_paths = ["~/.cline/skills"]
+skill_format = "skill-md"
+cli_command = "cline"
+install_command = "code --install-extension saoudrizwan.claude-dev"
+install_docs_url = "https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev"
+install_source_label = "official-marketplace"

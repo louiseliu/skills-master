@@ -1,0 +1,9 @@
+slug = "cursor"
+name = "Cursor"
+enabled = true
+global_paths = ["~/.cursor/skills"]
+skill_format = "skill-md"
+cli_command = "cursor"
+install_command = "curl https://cursor.com/install -fsS | bash"
+install_docs_url = "https://cursor.com/docs/cli/overview"
+install_source_label = "official-docs"
