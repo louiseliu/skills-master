@@ -1,8 +1,25 @@
-# AgentSkills
+<p align="center">
+  <img src="src-tauri/icons/icon-rounded.png" width="128" height="128" alt="AgentSkills Logo">
+</p>
 
-跨平台桌面应用，用于管理 AI 代理技能。通过统一界面浏览、安装、同步和编辑 13 个代理的技能。
+<h1 align="center">AgentSkills</h1>
 
-[English](./README.md)
+<p align="center">
+  跨平台桌面应用，用于管理 AI 代理技能。<br>
+  通过统一界面浏览、安装、同步和编辑 13 个代理的技能。
+</p>
+
+<p align="center">
+  <a href="https://github.com/anthropics/agent-skills/releases"><img src="https://img.shields.io/github/v/release/anthropics/agent-skills?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/anthropics/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/anthropics/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/anthropics/agent-skills?style=flat-square" alt="Stars"></a>
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a>
+</p>
+
+---
 
 ## 支持的代理
 
@@ -75,31 +92,10 @@ npm run tauri build
 - **Windows：** `.msi` + `.exe`
 - **Linux：** `.AppImage` + `.deb`
 
-## 架构
+## 贡献
 
-```
-src/                          # React 前端
-├── pages/                    # 仪表盘、技能管理、市场、设置
-├── components/               # 布局、shadcn/ui 组件
-└── hooks/                    # useAgents、useSkills（React Query）
+欢迎贡献！请先开 Issue 讨论你想要做的改动。
 
-src-tauri/
-├── agents/*.toml             # 声明式代理配置
-└── src/
-    ├── commands/             # Tauri IPC 命令处理
-    ├── scanner/engine.rs     # 扫描技能目录
-    ├── installer/            # 安装/卸载技能
-    ├── parser/skillmd.rs     # SKILL.md YAML 前置解析器
-    ├── marketplace/          # skills.sh 抓取 + ClawHub API 客户端
-    ├── registry/loader.rs    # 加载代理 TOML 配置，检测已安装代理
-    └── watcher.rs            # 文件监听 → 向前端发送事件
-```
+## 许可证
 
-### 数据流
-
-1. Registry 加载代理 TOML 配置，通过目录/CLI 检测已安装的代理
-2. Scanner 遍历每个代理的技能目录，Parser 提取 SKILL.md 前置元数据
-3. 跨代理按 ID 去重技能
-4. 文件监听器监控目录变化，发送 `skills-changed` 事件
-5. 前端通过 TanStack Query 缓存失效机制订阅事件
-
+[MIT](./LICENSE)

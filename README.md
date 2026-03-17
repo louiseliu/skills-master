@@ -1,6 +1,25 @@
-# AgentSkills
+<p align="center">
+  <img src="src-tauri/icons/icon-rounded.png" width="128" height="128" alt="AgentSkills Logo">
+</p>
 
-A cross-platform desktop app for managing AI agent skills. Browse, install, sync, and edit skills across 13 agents from a single interface.
+<h1 align="center">AgentSkills</h1>
+
+<p align="center">
+  A cross-platform desktop app for managing AI agent skills.<br>
+  Browse, install, sync, and edit skills across 13 agents from a single interface.
+</p>
+
+<p align="center">
+  <a href="https://github.com/anthropics/agent-skills/releases"><img src="https://img.shields.io/github/v/release/anthropics/agent-skills?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/anthropics/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/anthropics/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/anthropics/agent-skills?style=flat-square" alt="Stars"></a>
+</p>
+
+<p align="center">
+  <a href="./README.zh-CN.md">中文</a>
+</p>
+
+---
 
 ## Supported Agents
 
@@ -73,34 +92,10 @@ Outputs:
 - **Windows:** `.msi` + `.exe`
 - **Linux:** `.AppImage` + `.deb`
 
-## Architecture
+## Contributing
 
-```
-src/                          # React frontend
-├── pages/                    # Dashboard, Skills, Marketplace, Settings
-├── components/               # Layout, shadcn/ui components
-└── hooks/                    # useAgents, useSkills (React Query)
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
 
-src-tauri/
-├── agents/*.toml             # Declarative agent configs
-└── src/
-    ├── commands/             # Tauri IPC handlers
-    ├── scanner/engine.rs     # Scans skill directories
-    ├── installer/            # Install/uninstall skills
-    ├── parser/skillmd.rs     # SKILL.md YAML frontmatter parser
-    ├── marketplace/          # skills.sh scraper + ClawHub API client
-    ├── registry/loader.rs    # Loads agent TOML configs, detects installed agents
-    └── watcher.rs            # File system watcher → emits events to frontend
-```
+## License
 
-### Data Flow
-
-1. Registry loads agent TOML configs and detects which agents are installed (via directory/CLI detection)
-2. Scanner walks each agent's skill directories, parser extracts SKILL.md frontmatter
-3. Skills are deduplicated by ID across agents
-4. File watcher monitors directories and emits `skills-changed` events
-5. Frontend subscribes to events via TanStack Query cache invalidation
-
----
-
-[中文文档](./README.zh-CN.md)
+[MIT](./LICENSE)
