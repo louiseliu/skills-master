@@ -1,232 +1,391 @@
 #!/usr/bin/env bash
+# AgentSkills one-line installer (Linux + macOS)
+# Usage: curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/main/install.sh | bash
+#
+# Environment variables:
+#   VERSION     - Install a specific version (e.g. "0.1.0" or "v0.1.0"), default: latest
+#   DRY_RUN     - Set to "1" to print commands without executing
+
 set -euo pipefail
 
-REPO_OWNER="chrlsio"
-REPO_NAME="agent-skills"
-REPO="${REPO_OWNER}/${REPO_NAME}"
-RELEASE_TAG="v0.1.0"
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-if [[ $# -gt 0 ]]; then
-  echo "This installer does not accept arguments."
-  echo "Use the versioned URL to install a specific version."
-  exit 1
-fi
+REPO="chrlsio/agent-skills"
+APP_NAME="AgentSkills"
+GITHUB_RELEASES_API="https://api.github.com/repos/${REPO}/releases"
+SCRIPT_VERSION="2.0.0"
 
-log() {
-  echo "[AgentSkills installer] $*"
+PLATFORM=""
+ARCH_LABEL=""
+DEB_ARCH=""
+RPM_ARCH=""
+PKG_MANAGER=""
+PKG_EXT=""
+RELEASE_VERSION=""
+ASSET_NAME=""
+ASSET_URL=""
+TEMP_DIR=""
+DOWNLOAD_PATH=""
+
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+fatal() { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
+
+run() {
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo -e "${YELLOW}[DRY-RUN]${NC} $*"
+  else
+    "$@"
+  fi
+}
+
+show_help() {
+  cat <<EOF
+${APP_NAME} install script
+
+Usage:
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
+
+Environment variables:
+  VERSION   Install specific version tag (e.g. 0.1.0 or v0.1.0), default: latest
+  DRY_RUN   Set to 1 to print commands without executing
+
+Examples:
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | VERSION=0.1.0 bash
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | DRY_RUN=1 bash
+EOF
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Missing required command: $1" >&2
-    exit 1
-  }
+  command -v "$1" >/dev/null 2>&1 || fatal "Missing required command: $1"
 }
 
-require_cmd curl
-require_cmd mktemp
-require_cmd uname
-
-OS_RAW="$(uname -s)"
-ARCH_RAW="$(uname -m)"
-
-case "$OS_RAW" in
-  Darwin) OS="macos" ;;
-  Linux) OS="linux" ;;
-  *)
-    echo "Unsupported OS: $OS_RAW"
-    exit 1
-    ;;
-esac
-
-case "$ARCH_RAW" in
-  x86_64|amd64) ARCH="x64" ;;
-  arm64|aarch64) ARCH="arm64" ;;
-  *)
-    echo "Unsupported architecture: $ARCH_RAW"
-    exit 1
-    ;;
-esac
-
-RELEASE_API="https://api.github.com/repos/${REPO}/releases/tags/${RELEASE_TAG}"
-
-curl_args=(
-  -fsSL
-  -H "Accept: application/vnd.github+json"
-  -H "User-Agent: agentskills-installer"
-)
-if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
-fi
-
-log "Fetching release metadata from ${RELEASE_API}"
-release_json="$(curl "${curl_args[@]}" "${RELEASE_API}")" || {
-  echo "Failed to fetch release metadata. Check repository/tag availability." >&2
-  exit 1
+normalize_version() {
+  local v="$1"
+  v="${v#v}"
+  printf '%s' "$v"
 }
 
-extract_download_urls() {
-  sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\)".*/\1/p'
+build_curl_args() {
+  CURL_ARGS=(
+    -fsSL
+    -H "Accept: application/vnd.github+json"
+    -H "User-Agent: agentskills-installer"
+  )
 }
 
-asset_urls="$(printf '%s' "$release_json" | extract_download_urls)"
-
-if [[ -z "${asset_urls}" ]]; then
-  echo "No downloadable assets found in this release."
-  exit 1
-fi
-
-filter_arch_urls() {
-  local input="$1"
-  local arch="$2"
-  if [[ "$arch" == "arm64" ]]; then
-    printf '%s\n' "$input" | grep -E -i 'arm64|aarch64' || true
-  else
-    printf '%s\n' "$input" | grep -E -i 'x64|x86_64|amd64|intel' || true
-  fi
+github_api_get() {
+  local url="$1"
+  curl "${CURL_ARGS[@]}" "$url"
 }
 
-pick_first_line() {
-  sed -n '1p'
-}
-
-pick_asset() {
-  local os="$1"
-  local arch="$2"
-  local urls="$3"
-  local candidates=""
-  local by_arch=""
+detect_platform() {
+  local os arch
+  os="$(uname -s)"
+  arch="$(uname -m)"
 
   case "$os" in
-    macos)
-      candidates="$(printf '%s\n' "$urls" | grep -E -i '\.dmg($|\?)' || true)"
-      ;;
-    linux)
-      if command -v dpkg >/dev/null 2>&1; then
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.deb($|\?)' || true)"
-      elif command -v rpm >/dev/null 2>&1; then
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.rpm($|\?)' || true)"
-      else
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.AppImage($|\?)' || true)"
-      fi
+    Linux) PLATFORM="linux" ;;
+    Darwin) PLATFORM="macos" ;;
+    *) fatal "Unsupported OS: $os (use install.ps1 on Windows)." ;;
+  esac
 
-      # Fallback chain if preferred format is missing.
-      if [[ -z "$candidates" ]]; then
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.deb($|\?)' || true)"
-      fi
-      if [[ -z "$candidates" ]]; then
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.rpm($|\?)' || true)"
-      fi
-      if [[ -z "$candidates" ]]; then
-        candidates="$(printf '%s\n' "$urls" | grep -E -i '\.AppImage($|\?)' || true)"
-      fi
+  case "$arch" in
+    x86_64|amd64)
+      ARCH_LABEL="x86_64"
+      DEB_ARCH="amd64"
+      RPM_ARCH="x86_64"
+      ;;
+    aarch64|arm64)
+      ARCH_LABEL="aarch64"
+      DEB_ARCH="arm64"
+      RPM_ARCH="aarch64"
       ;;
     *)
-      echo "Unsupported OS for asset selection: $os" >&2
-      return 1
+      fatal "Unsupported architecture: $arch"
       ;;
   esac
 
-  [[ -z "$candidates" ]] && return 1
+  info "Detected platform: ${PLATFORM} (${ARCH_LABEL})"
+}
 
-  by_arch="$(filter_arch_urls "$candidates" "$arch")"
-  if [[ -n "$by_arch" ]]; then
-    printf '%s\n' "$by_arch" | pick_first_line
+detect_linux_package_manager() {
+  if [[ "$PLATFORM" != "linux" ]]; then
     return 0
   fi
 
-  # Selecting a mismatched architecture package on macOS/Linux is usually incorrect.
-  if [[ "$arch" == "arm64" ]]; then
-    if [[ "$os" == "linux" ]]; then
-      echo "No Linux ARM64 artifact found in this release." >&2
-      return 1
-    fi
-    if [[ "$os" == "macos" ]]; then
-      echo "No macOS ARM64 artifact found in this release." >&2
-      return 1
+  if command -v apt-get >/dev/null 2>&1; then
+    PKG_MANAGER="apt"
+    PKG_EXT="deb"
+  elif command -v dnf >/dev/null 2>&1; then
+    PKG_MANAGER="dnf"
+    PKG_EXT="rpm"
+  elif command -v yum >/dev/null 2>&1; then
+    PKG_MANAGER="yum"
+    PKG_EXT="rpm"
+  else
+    PKG_MANAGER="appimage"
+    PKG_EXT="AppImage"
+    warn "No apt/dnf/yum found, falling back to AppImage."
+  fi
+
+  info "Linux installer preference: ${PKG_MANAGER} (${PKG_EXT})"
+}
+
+parse_tag_from_json() {
+  grep -m1 '"tag_name"' | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/'
+}
+
+extract_assets_from_json() {
+  awk '
+    /"name"[[:space:]]*:/ {
+      if (match($0, /"name"[[:space:]]*:[[:space:]]*"([^"]+)"/, m)) {
+        name = m[1]
+      }
+    }
+    /"browser_download_url"[[:space:]]*:/ {
+      if (match($0, /"browser_download_url"[[:space:]]*:[[:space:]]*"([^"]+)"/, m)) {
+        url = m[1]
+        if (name != "" && url != "") {
+          print name "\t" url
+          name = ""
+        }
+      }
+    }
+  '
+}
+
+build_fallback_assets() {
+  local base_url="https://github.com/${REPO}/releases/download/v${RELEASE_VERSION}"
+  cat <<EOF
+AgentSkills_${RELEASE_VERSION}_aarch64.dmg	${base_url}/AgentSkills_${RELEASE_VERSION}_aarch64.dmg
+AgentSkills_${RELEASE_VERSION}_x64.dmg	${base_url}/AgentSkills_${RELEASE_VERSION}_x64.dmg
+AgentSkills_${RELEASE_VERSION}_amd64.deb	${base_url}/AgentSkills_${RELEASE_VERSION}_amd64.deb
+AgentSkills_${RELEASE_VERSION}_arm64.deb	${base_url}/AgentSkills_${RELEASE_VERSION}_arm64.deb
+AgentSkills-${RELEASE_VERSION}-1.x86_64.rpm	${base_url}/AgentSkills-${RELEASE_VERSION}-1.x86_64.rpm
+AgentSkills-${RELEASE_VERSION}-1.aarch64.rpm	${base_url}/AgentSkills-${RELEASE_VERSION}-1.aarch64.rpm
+AgentSkills_${RELEASE_VERSION}_amd64.AppImage	${base_url}/AgentSkills_${RELEASE_VERSION}_amd64.AppImage
+AgentSkills_${RELEASE_VERSION}_aarch64.AppImage	${base_url}/AgentSkills_${RELEASE_VERSION}_aarch64.AppImage
+EOF
+}
+
+get_release_version() {
+  if [[ -n "${VERSION:-}" ]]; then
+    RELEASE_VERSION="$(normalize_version "$VERSION")"
+    info "Using specified version: v${RELEASE_VERSION}"
+    return 0
+  fi
+
+  info "Fetching latest release version..."
+
+  local latest_json latest_tag
+  if latest_json="$(github_api_get "${GITHUB_RELEASES_API}/latest" 2>/dev/null)"; then
+    latest_tag="$(printf '%s' "$latest_json" | parse_tag_from_json)"
+    latest_tag="${latest_tag#v}"
+    if [[ -n "$latest_tag" ]]; then
+      RELEASE_VERSION="$latest_tag"
+      info "Latest version: v${RELEASE_VERSION}"
+      return 0
     fi
   fi
 
-  printf '%s\n' "$candidates" | pick_first_line
+  warn "GitHub API unavailable or rate-limited. Trying redirect fallback..."
+  local redirect
+  redirect="$(curl -fsSI "https://github.com/${REPO}/releases/latest" | awk 'tolower($1)=="location:" {print $2}' | tr -d '\r' | sed -n '1p')"
+  RELEASE_VERSION="$(printf '%s' "$redirect" | sed -E 's|.*/tag/v||')"
+  [[ -z "$RELEASE_VERSION" ]] && fatal "Unable to determine latest version. Set VERSION explicitly."
+
+  info "Latest version: v${RELEASE_VERSION}"
 }
 
-asset_url="$(pick_asset "$OS" "$ARCH" "$asset_urls")" || {
-  echo "Failed to select an installable asset for ${OS}/${ARCH}."
-  exit 1
-}
+fetch_assets() {
+  local release_json
+  local api_url="${GITHUB_RELEASES_API}/tags/v${RELEASE_VERSION}"
 
-filename="$(basename "$asset_url")"
-tmp_dir="$(mktemp -d)"
-artifact_path="${tmp_dir}/${filename}"
-
-log "Detected platform: ${OS}/${ARCH}"
-log "Selected asset: ${asset_url}"
-
-log "Downloading asset to ${artifact_path}"
-curl -fL "$asset_url" -o "$artifact_path"
-
-install_macos_dmg() {
-  local dmg_path="$1"
-  local mount_point
-  mount_point="$(hdiutil attach "$dmg_path" -nobrowse | awk 'END {print $NF}')"
-
-  if [[ -z "$mount_point" || ! -d "$mount_point" ]]; then
-    echo "Failed to mount dmg."
-    exit 1
+  info "Fetching release metadata for v${RELEASE_VERSION}..."
+  if release_json="$(github_api_get "$api_url" 2>/dev/null)"; then
+    ASSETS="$(printf '%s' "$release_json" | extract_assets_from_json)"
   fi
 
-  local app_path=""
+  if [[ -z "${ASSETS:-}" ]]; then
+    warn "GitHub API metadata unavailable. Falling back to conventional asset names."
+    ASSETS="$(build_fallback_assets)"
+  fi
+}
+
+select_asset_from_candidates() {
+  local candidates="$1"
+  local first_line
+  first_line="$(printf '%s\n' "$candidates" | sed -n '1p')"
+  [[ -z "$first_line" ]] && return 1
+  ASSET_NAME="$(printf '%s' "$first_line" | awk -F'\t' '{print $1}')"
+  ASSET_URL="$(printf '%s' "$first_line" | awk -F'\t' '{print $2}')"
+  return 0
+}
+
+choose_asset() {
+  local candidates=""
+
+  if [[ "$PLATFORM" == "macos" ]]; then
+    candidates="$(printf '%s\n' "$ASSETS" | grep -E -i '\.dmg$' || true)"
+    if [[ "$ARCH_LABEL" == "aarch64" ]]; then
+      candidates="$(printf '%s\n' "$candidates" | grep -E -i 'arm64|aarch64' || true)"
+    else
+      candidates="$(printf '%s\n' "$candidates" | grep -E -i 'x64|x86_64|amd64|intel' || true)"
+    fi
+    select_asset_from_candidates "$candidates" || fatal "Failed to select macOS asset for ${ARCH_LABEL}."
+    info "Selected asset: ${ASSET_NAME}"
+    return 0
+  fi
+
+  case "$PKG_EXT" in
+    deb)
+      candidates="$(printf '%s\n' "$ASSETS" | grep -E -i "\.deb$" | grep -E -i "${DEB_ARCH}|${ARCH_LABEL}" || true)"
+      ;;
+    rpm)
+      candidates="$(printf '%s\n' "$ASSETS" | grep -E -i "\.rpm$" | grep -E -i "${RPM_ARCH}|${ARCH_LABEL}" || true)"
+      ;;
+    AppImage)
+      if [[ "$ARCH_LABEL" == "aarch64" ]]; then
+        candidates="$(printf '%s\n' "$ASSETS" | grep -E -i "\.AppImage$" | grep -E -i 'aarch64|arm64' || true)"
+      else
+        candidates="$(printf '%s\n' "$ASSETS" | grep -E -i "\.AppImage$" | grep -E -i 'amd64|x86_64|x64' || true)"
+      fi
+      ;;
+  esac
+
+  if ! select_asset_from_candidates "$candidates"; then
+    warn "Preferred format (${PKG_EXT}) not found, trying fallback formats."
+    candidates="$(printf '%s\n' "$ASSETS" | grep -E -i "\.deb$|\.rpm$|\.AppImage$" | grep -E -i "${DEB_ARCH}|${RPM_ARCH}|${ARCH_LABEL}|arm64|aarch64|amd64|x86_64|x64" || true)"
+    select_asset_from_candidates "$candidates" || fatal "Failed to select Linux asset for ${ARCH_LABEL}."
+  fi
+
+  info "Selected asset: ${ASSET_NAME}"
+}
+
+download_asset() {
+  TEMP_DIR="$(mktemp -d)"
+  DOWNLOAD_PATH="${TEMP_DIR}/${ASSET_NAME}"
+
+  info "Downloading ${ASSET_NAME}..."
+  run curl -fSL --progress-bar -o "$DOWNLOAD_PATH" "$ASSET_URL"
+  [[ "${DRY_RUN:-0}" == "1" ]] || [[ -f "$DOWNLOAD_PATH" ]] || fatal "Download failed."
+}
+
+install_linux() {
+  info "Installing ${APP_NAME} on Linux..."
+  case "$ASSET_NAME" in
+    *.deb)
+      run sudo dpkg -i "$DOWNLOAD_PATH"
+      run sudo apt-get install -f -y
+      ;;
+    *.rpm)
+      if [[ "$PKG_MANAGER" == "dnf" ]]; then
+        run sudo dnf install -y "$DOWNLOAD_PATH"
+      elif [[ "$PKG_MANAGER" == "yum" ]]; then
+        run sudo yum install -y "$DOWNLOAD_PATH"
+      else
+        run sudo rpm -i "$DOWNLOAD_PATH"
+      fi
+      ;;
+    *.AppImage)
+      local target_dir="${HOME}/.local/bin"
+      local target_path="${target_dir}/agentskills.AppImage"
+      run mkdir -p "$target_dir"
+      run cp "$DOWNLOAD_PATH" "$target_path"
+      run chmod +x "$target_path"
+      warn "AppImage installed at ${target_path}"
+      ;;
+    *)
+      fatal "Unsupported Linux package: ${ASSET_NAME}"
+      ;;
+  esac
+}
+
+install_macos() {
+  info "Installing ${APP_NAME} on macOS..."
+  [[ "$ASSET_NAME" == *.dmg ]] || fatal "Expected a .dmg for macOS, got: ${ASSET_NAME}"
+
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo -e "${YELLOW}[DRY-RUN]${NC} hdiutil attach \"$DOWNLOAD_PATH\" -nobrowse -noautoopen"
+    echo -e "${YELLOW}[DRY-RUN]${NC} cp -R <mounted>/*.app /Applications/"
+    echo -e "${YELLOW}[DRY-RUN]${NC} hdiutil detach <mounted>"
+    echo -e "${YELLOW}[DRY-RUN]${NC} sudo xattr -rd com.apple.quarantine \"/Applications/${APP_NAME}.app\""
+    return 0
+  fi
+
+  local mount_output mount_point app_path
+  mount_output="$(hdiutil attach "$DOWNLOAD_PATH" -nobrowse -noautoopen 2>&1)" || fatal "Failed to mount dmg: $mount_output"
+  mount_point="$(printf '%s\n' "$mount_output" | awk 'END {print $NF}')"
+  [[ -d "$mount_point" ]] || fatal "Invalid mount point: $mount_point"
+
+  app_path=""
   for maybe_app in "$mount_point"/*.app; do
     if [[ -d "$maybe_app" ]]; then
       app_path="$maybe_app"
       break
     fi
   done
+  [[ -n "$app_path" ]] || { hdiutil detach "$mount_point" >/dev/null 2>&1 || true; fatal "No .app found in dmg."; }
 
-  if [[ -z "$app_path" ]]; then
-    hdiutil detach "$mount_point" >/dev/null 2>&1 || true
-    echo "No .app found inside dmg."
-    exit 1
+  if [[ -d "/Applications/$(basename "$app_path")" ]]; then
+    info "Removing existing app from /Applications..."
+    rm -rf "/Applications/$(basename "$app_path")"
   fi
-
-  log "Installing $(basename "$app_path") to /Applications"
   cp -R "$app_path" /Applications/
   hdiutil detach "$mount_point" >/dev/null 2>&1 || true
+
+  info "Removing quarantine attribute..."
+  sudo xattr -rd com.apple.quarantine "/Applications/$(basename "$app_path")" >/dev/null 2>&1 || true
 }
 
-install_linux_file() {
-  local file_path="$1"
-  case "$file_path" in
-    *.deb)
-      log "Installing .deb package (sudo may be required)"
-      sudo dpkg -i "$file_path" || sudo apt-get install -f -y
-      ;;
-    *.rpm)
-      log "Installing .rpm package (sudo may be required)"
-      sudo rpm -i "$file_path"
-      ;;
-    *.AppImage)
-      mkdir -p "${HOME}/.local/bin"
-      local target="${HOME}/.local/bin/agentskills.AppImage"
-      log "Installing AppImage to ${target}"
-      cp "$file_path" "$target"
-      chmod +x "$target"
-      log "Run with: ${target}"
-      ;;
-    *)
-      echo "Unsupported Linux artifact format: $file_path"
-      exit 1
-      ;;
+cleanup() {
+  [[ -n "${TEMP_DIR:-}" && -d "${TEMP_DIR}" ]] && rm -rf "$TEMP_DIR"
+}
+
+main() {
+  for arg in "$@"; do
+    case "$arg" in
+      -h|--help) show_help; exit 0 ;;
+      -v|--version) echo "install.sh v${SCRIPT_VERSION}"; exit 0 ;;
+      *) fatal "Unknown argument: $arg" ;;
+    esac
+  done
+
+  require_cmd curl
+  require_cmd mktemp
+  require_cmd uname
+  build_curl_args
+
+  trap cleanup EXIT
+
+  echo ""
+  echo -e "${BLUE}=====================================${NC}"
+  echo -e "${BLUE}      ${APP_NAME} Installer${NC}"
+  echo -e "${BLUE}=====================================${NC}"
+  echo ""
+
+  detect_platform
+  detect_linux_package_manager
+  get_release_version
+  fetch_assets
+  choose_asset
+  download_asset
+
+  case "$PLATFORM" in
+    linux) install_linux ;;
+    macos) install_macos ;;
   esac
+
+  echo ""
+  success "Installation complete."
+  echo ""
 }
 
-case "$OS" in
-  macos)
-    install_macos_dmg "$artifact_path"
-    ;;
-  linux)
-    install_linux_file "$artifact_path"
-    ;;
-esac
-
-log "Installation complete."
+main "$@"
