@@ -11,6 +11,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-version-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: ./.github/scripts/check-version-sync.sh
+
   check-frontend:
     runs-on: ubuntu-latest
     steps:

@@ -65,13 +65,13 @@ Automatically detects your OS, architecture, and picks a matching installer from
 Linux / macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.1/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.2/install.sh | bash
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.1/install.ps1 | iex
+irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.2/install.ps1 | iex
 ```
 
 Supported formats: Linux (`.deb` / `.rpm` / `.AppImage`) | macOS (`.dmg`) | Windows (`.exe` / `.msi`)
