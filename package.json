@@ -6,7 +6,7 @@
   "author": "AgentSkills Contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropics/agent-skills"
+    "url": "https://github.com/chrlsio/agent-skills"
   },
   "type": "module",
   "scripts": {

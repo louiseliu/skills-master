@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anthropics/agent-skills/releases"><img src="https://img.shields.io/github/v/release/anthropics/agent-skills?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/anthropics/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
-  <a href="https://github.com/anthropics/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/anthropics/agent-skills?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/chrlsio/agent-skills/releases"><img src="https://img.shields.io/github/v/release/chrlsio/agent-skills?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/chrlsio/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/chrlsio/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/chrlsio/agent-skills?style=flat-square" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -52,6 +52,65 @@
 
 **原生核心层：** Rust、Tauri 2、SQLite
 
+## 安装
+
+### 方案 A：一行命令安装（推荐）
+
+自动识别操作系统与架构，并从 GitHub Releases 选择匹配的安装包。
+
+Linux / macOS：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.0/install.sh | bash
+```
+
+Windows（PowerShell）：
+
+```powershell
+irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.0/install.ps1 | iex
+```
+
+支持格式：Linux（`.deb` / `.rpm` / `.AppImage`）| macOS（`.dmg`）| Windows（`.exe` / `.msi`）
+
+如果遇到 GitHub API 速率限制，可先设置 `GITHUB_TOKEN` 再运行安装脚本。
+
+### 方案 B：macOS 使用 Homebrew
+
+```bash
+# 1. 订阅当前仓库 Tap
+brew tap chrlsio/agent-skills https://github.com/chrlsio/agent-skills
+
+# 2. 安装 AgentSkills
+brew install --cask agentskills
+```
+
+提示：如果遇到 quarantine 相关权限问题，可尝试 `--no-quarantine`。
+
+### 方案 C：手动下载
+
+- **macOS：** `AgentSkills.app` + `.dmg`
+- **Windows：** `.msi` + `.exe`
+- **Linux：** `.AppImage` + `.deb`
+- 发布页：[GitHub Releases](https://github.com/chrlsio/agent-skills/releases)
+
+### 常见问题排查（Troubleshooting）
+
+#### macOS 提示“应用已损坏，无法打开”？
+
+由于 macOS 的安全机制，非 App Store 下载的应用可能会触发此提示。
+
+命令行修复（推荐）：
+
+```bash
+sudo xattr -rd com.apple.quarantine "/Applications/AgentSkills.app"
+```
+
+Homebrew 安装技巧：
+
+```bash
+brew install --cask --no-quarantine agentskills
+```
+
 ## 快速开始
 
 ### 环境要求
@@ -84,13 +143,6 @@ cd src-tauri && cargo test
 ```bash
 npm run tauri build
 ```
-
-### 下载
-
-- **macOS：** `AgentSkills.app` + `.dmg`
-- **Windows：** `.msi` + `.exe`
-- **Linux：** `.AppImage` + `.deb`
-- 发布页：[GitHub Releases](https://github.com/anthropics/agent-skills/releases)
 
 ## 贡献
 

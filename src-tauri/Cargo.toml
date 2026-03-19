@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A desktop app for managing AI agent skills across multiple agents"
 authors = ["AgentSkills Contributors"]
 license = "MIT"
-repository = "https://github.com/anthropics/agent-skills"
+repository = "https://github.com/chrlsio/agent-skills"
 edition = "2021"
 
 [lib]

@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anthropics/agent-skills/releases"><img src="https://img.shields.io/github/v/release/anthropics/agent-skills?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/anthropics/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
-  <a href="https://github.com/anthropics/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/anthropics/agent-skills?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/chrlsio/agent-skills/releases"><img src="https://img.shields.io/github/v/release/chrlsio/agent-skills?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/chrlsio/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/chrlsio/agent-skills/stargazers"><img src="https://img.shields.io/github/stars/chrlsio/agent-skills?style=flat-square" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -52,6 +52,63 @@
 
 **Native Core:** Rust, Tauri 2, SQLite
 
+## Installation
+
+### Option A: One-line install scripts (recommended)
+
+Automatically detects your OS, architecture, and picks a matching installer from GitHub Releases.
+
+Linux / macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.0/install.sh | bash
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.0/install.ps1 | iex
+```
+
+Supported formats: Linux (`.deb` / `.rpm` / `.AppImage`) | macOS (`.dmg`) | Windows (`.exe` / `.msi`)
+
+### Option B: macOS with Homebrew
+
+```bash
+# 1. Tap this repository
+brew tap chrlsio/agent-skills https://github.com/chrlsio/agent-skills
+
+# 2. Install AgentSkills
+brew install --cask agentskills
+```
+
+Tip: if you hit quarantine-related issues, try `--no-quarantine`.
+
+### Option C: Manual download
+
+- **macOS:** `AgentSkills.app` + `.dmg`
+- **Windows:** `.msi` + `.exe`
+- **Linux:** `.AppImage` + `.deb`
+- Release page: [GitHub Releases](https://github.com/chrlsio/agent-skills/releases)
+
+### Troubleshooting
+
+#### macOS says "App is damaged and can't be opened"?
+
+Due to macOS security checks, apps downloaded outside the App Store may trigger this message.
+
+Command-line fix (recommended):
+
+```bash
+sudo xattr -rd com.apple.quarantine "/Applications/AgentSkills.app"
+```
+
+Homebrew tip:
+
+```bash
+brew install --cask --no-quarantine agentskills
+```
+
 ## Getting Started
 
 ### Prerequisites
@@ -84,13 +141,6 @@ cd src-tauri && cargo test
 ```bash
 npm run tauri build
 ```
-
-### Downloads
-
-- **macOS:** `AgentSkills.app` + `.dmg`
-- **Windows:** `.msi` + `.exe`
-- **Linux:** `.AppImage` + `.deb`
-- Release page: [GitHub Releases](https://github.com/anthropics/agent-skills/releases)
 
 ## Contributing
 
