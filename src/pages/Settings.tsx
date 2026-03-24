@@ -6,9 +6,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
-import { useAllAgents } from "@/hooks/useAgents";
 import { useRepos, useRemoveRepo, useSyncRepo } from "@/hooks/useRepos";
 
 interface AppSettings {
@@ -16,6 +14,12 @@ interface AppSettings {
   language: string | null;
   path_overrides: Record<string, string[]> | null;
 }
+
+const DEFAULT_SETTINGS: AppSettings = {
+  theme: null,
+  language: null,
+  path_overrides: null,
+};
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -25,7 +29,6 @@ const LANGUAGES = [
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const { data: agents } = useAllAgents();
   const [cacheCleared, setCacheCleared] = useState(false);
   const { accent, setAccent, presets } = useAccentColor();
   const { data: repos } = useRepos();
@@ -61,7 +64,7 @@ export default function SettingsPage() {
   function handleLanguageChange(langCode: string) {
     void i18n.changeLanguage(langCode);
     saveMutation.mutate({
-      ...settings!,
+      ...(settings ?? DEFAULT_SETTINGS),
       language: langCode,
     });
   }
@@ -110,7 +113,7 @@ export default function SettingsPage() {
                 size="sm"
                 onClick={() =>
                   saveMutation.mutate({
-                    ...settings!,
+                    ...(settings ?? DEFAULT_SETTINGS),
                     theme: themeOption === "system" ? null : themeOption,
                   })
                 }
@@ -200,40 +203,6 @@ export default function SettingsPage() {
             </>
           )}
         </Button>
-      </section>
-
-      {/* Agent paths */}
-      <section className="rounded-2xl p-5 glass-panel glass-shine-always space-y-3">
-        <h2 className="text-sm font-medium">{t("settings.agentSkillPaths")}</h2>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {t("settings.agentPathsDescription")}
-        </p>
-        <div className="space-y-1.5">
-          {agents?.map((agent) => (
-            <div
-              key={agent.slug}
-              className="rounded-xl glass-inset px-3 py-2.5 text-xs space-y-1"
-            >
-              <span className="font-medium">{agent.name}</span>
-              {agent.global_paths.length > 0 ? (
-                <div className="flex flex-col gap-0.5">
-                  {agent.global_paths.map((p) => (
-                    <button
-                      key={p}
-                      className="text-muted-foreground hover:text-primary font-mono text-left break-all transition-colors cursor-pointer"
-                      title={t("settings.revealInFinder")}
-                      onClick={() => revealItemInDir(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">{"\u2014"}</span>
-              )}
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* Skill Repos */}

@@ -16,6 +16,13 @@ function AppInner() {
   const { i18n } = useTranslation();
   useTheme();
 
+  // Disable default browser/webview context menu globally
+  useEffect(() => {
+    const prevent = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", prevent);
+    return () => document.removeEventListener("contextmenu", prevent);
+  }, []);
+
   // 从后端恢复已保存的语言设置
   useEffect(() => {
     invoke<{ language: string | null }>("read_settings")

@@ -45,7 +45,7 @@ export function useRemoveRepo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (repoId: string) =>
-      invoke("remove_skill_repo", { repoId }),
+      invoke("remove_skill_repo", { repoIdParam: repoId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["repos"] });
     },

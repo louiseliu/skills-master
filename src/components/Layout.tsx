@@ -3,16 +3,13 @@ import { memo, useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open } from "@tauri-apps/plugin-dialog";
 import { LayoutDashboard, Puzzle, Store, Settings, GitBranch, FolderOpen } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { getAgentIcon } from "@/lib/agentIcons";
 import { Button } from "@/components/ui/button";
-import ImportRepoDialog from "@/components/ImportRepoDialog";
+import ImportWizard from "@/components/ImportWizard";
 import { useResizable } from "@/hooks/useResizable";
 import ResizeHandle from "@/components/ResizeHandle";
-import { useAddLocalDir } from "@/hooks/useRepos";
-import { useToast } from "@/components/ToastProvider";
 import { useAgents } from "@/hooks/useAgents";
 import { useSkills, installedAgents } from "@/hooks/useSkills";
 
@@ -35,9 +32,7 @@ const AgentIcon = memo(function AgentIcon({ slug }: { slug: string }) {
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { toast } = useToast();
-  const [showImport, setShowImport] = useState(false);
-  const addLocalDir = useAddLocalDir();
+  const [importMode, setImportMode] = useState<"git" | "local" | null>(null);
   const { data: agents } = useAgents();
   const { data: skills } = useSkills();
   const [searchParams] = useSearchParams();
@@ -58,18 +53,6 @@ export default function Layout() {
     return counts;
   }, [skills]);
 
-  async function handleImportLocal() {
-    const selected = await open({ directory: true, multiple: false });
-    if (selected) {
-      try {
-        await addLocalDir.mutateAsync(selected);
-      } catch (e) {
-        console.error("Import local failed:", e instanceof Error ? e.message : String(e));
-        toast(t("common.importFolderFailed"), "destructive");
-      }
-    }
-  }
-
   const sidebar = useResizable({
     initial: 200,
     min: 200,
@@ -79,6 +62,7 @@ export default function Layout() {
 
   const onDragRegionMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.buttons !== 1) return;
+    e.preventDefault();
     if (e.detail === 2) {
       getCurrentWindow().toggleMaximize();
     } else {
@@ -117,7 +101,7 @@ export default function Layout() {
             variant="outline"
             size="sm"
             className="w-full justify-start gap-2 rounded-xl border-dashed"
-            onClick={() => setShowImport(true)}
+            onClick={() => setImportMode("git")}
           >
             <GitBranch className="size-3.5" aria-hidden="true" />
             {t("repos.importRepo")}
@@ -126,8 +110,7 @@ export default function Layout() {
             variant="outline"
             size="sm"
             className="w-full justify-start gap-2 rounded-xl border-dashed"
-            disabled={addLocalDir.isPending}
-            onClick={handleImportLocal}
+            onClick={() => setImportMode("local")}
           >
             <FolderOpen className="size-3.5" aria-hidden="true" />
             {t("repos.importLocal")}
@@ -205,10 +188,11 @@ export default function Layout() {
       <ResizeHandle onMouseDown={sidebar.onMouseDown} />
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Draggable title bar — above the content panel */}
+      <div className="flex-1 min-w-0 flex flex-col relative">
+        {/* Draggable title bar — overlay, does not push content down */}
         <div
-          className="shrink-0 h-[6px] cursor-default"
+          className="absolute inset-x-0 top-0 h-[42px] z-10 cursor-default select-none"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
           onMouseDown={onDragRegionMouseDown}
         />
         <main className="flex-1 min-w-0 overflow-y-auto">
@@ -216,7 +200,7 @@ export default function Layout() {
         </main>
       </div>
 
-      {showImport && <ImportRepoDialog onClose={() => setShowImport(false)} />}
+      {importMode && <ImportWizard mode={importMode} onClose={() => setImportMode(null)} />}
     </div>
   );
 }

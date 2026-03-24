@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { revealItemInDir, openUrl } from "@tauri-apps/plugin-opener";
 import { AgentRow } from "@/components/AgentRow";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useSkills, installedAgents, type Skill } from "@/hooks/useSkills";
@@ -27,6 +27,7 @@ import SearchInput from "@/components/SearchInput";
 import MarkdownContent from "@/components/MarkdownContent";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
+import { extractMarkdownBody } from "@/lib/markdown";
 
 export default function SkillsManager() {
   const { t } = useTranslation();
@@ -48,23 +49,45 @@ export default function SkillsManager() {
   const repoSkillsData = repoSkillQueries.map((q) => q.data);
 
   // Merge local skills + repo skills (dedup by skill id, local wins)
+  // For installed skills that match a repo skill, carry over the repo source info
   const mergedSkills = useMemo(() => {
     const localSkills = skills ?? [];
-    const localIds = new Set(localSkills.map((s) => s.id));
+    const localById = new Map(localSkills.map((s) => [s.id, s]));
 
-    const repoSkills: SkillWithRepo[] = [];
+    // Build a map of repo skill source info by skill id
+    const repoSourceById = new Map<string, { source: unknown; repoName: string }>();
     repoSkillsData.forEach((data, idx) => {
       if (data) {
         const repoName = repos?.[idx]?.name ?? "Repo";
         for (const s of data) {
-          if (!localIds.has(s.id)) {
-            repoSkills.push({ ...s, _repoName: repoName });
+          repoSourceById.set(s.id, { source: s.source, repoName });
+        }
+      }
+    });
+
+    // Enrich local skills with repo source info where available
+    const enrichedLocal: SkillWithRepo[] = localSkills.map((s) => {
+      const repoInfo = repoSourceById.get(s.id);
+      if (repoInfo) {
+        return { ...s, source: repoInfo.source, _repoName: repoInfo.repoName };
+      }
+      return s;
+    });
+
+    // Add repo-only skills (not installed locally)
+    const repoOnly: SkillWithRepo[] = [];
+    repoSkillsData.forEach((data, idx) => {
+      if (data) {
+        const repoName = repos?.[idx]?.name ?? "Repo";
+        for (const s of data) {
+          if (!localById.has(s.id)) {
+            repoOnly.push({ ...s, _repoName: repoName });
           }
         }
       }
     });
 
-    return [...localSkills, ...repoSkills];
+    return [...enrichedLocal, ...repoOnly];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skills, ...repoSkillsData, repos]);
   const queryClient = useQueryClient();
@@ -180,6 +203,25 @@ export default function SkillsManager() {
     }
   }
 
+  async function handleUninstallAll(skill: Skill) {
+    const slugs = installedAgents(skill);
+    if (!slugs.length) return;
+    setBusy(skill.canonical_path);
+    try {
+      for (const slug of slugs) {
+        await invoke("uninstall_skill", { skillId: skill.canonical_path, agentSlug: slug });
+      }
+      setSelectedId(null);
+      setSelectedSkill(null);
+      await refreshAndReselect();
+    } catch (e) {
+      console.error("Uninstall all failed:", e instanceof Error ? e.message : String(e));
+      toast(t("skills.uninstallFailed"), "destructive");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function handleSync(skillPath: string, targetAgents: string[]) {
     setBusy(skillPath);
     try {
@@ -273,6 +315,8 @@ export default function SkillsManager() {
                 selected={selectedId === skill.id}
                 agents={agents}
                 onSelect={selectSkill}
+                onReveal={revealItemInDir}
+                onUninstallAll={handleUninstallAll}
               />
             ))}
           </div>
@@ -330,47 +374,109 @@ const SkillListItem = memo(function SkillListItem({
   selected,
   agents,
   onSelect,
+  onReveal,
+  onUninstallAll,
 }: {
   skill: SkillWithRepo;
   selected: boolean;
   agents: import("@/hooks/useAgents").AgentConfig[] | undefined;
   onSelect: (skill: SkillWithRepo) => void;
+  onReveal: (path: string) => void;
+  onUninstallAll: (skill: SkillWithRepo) => void;
 }) {
+  const { t } = useTranslation();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const hasInstallations = installedAgents(skill).length > 0;
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    // Register on next frame so the opening event doesn't immediately close the menu
+    const raf = requestAnimationFrame(() => {
+      document.addEventListener("click", close);
+      document.addEventListener("contextmenu", close);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("click", close);
+      document.removeEventListener("contextmenu", close);
+    };
+  }, [menu]);
+
   return (
-    <button
-      type="button"
-      className={cn(
-        "w-full rounded-xl px-3 py-2.5 text-left transition-all duration-200",
-        selected
-          ? "glass glass-shine-always"
-          : "border border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
-      )}
-      onClick={() => onSelect(skill)}
-    >
-      <h3 className="text-sm font-medium truncate">{skill.name}</h3>
-      {skill.description && (
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-          {skill.description}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-1 mt-1.5">
-        {installedAgents(skill).map((slug) => (
-          <span
-            key={slug}
-            className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
-          >
-            {agents?.find((a) => a.slug === slug)?.name ?? slug}
-          </span>
-        ))}
-        {skill._repoName && (
-          <span className="rounded-full bg-blue-500/15 text-blue-600 px-1.5 py-0.5 text-[10px] font-medium">
-            {skill._repoName}
-          </span>
+    <div className="relative">
+      <button
+        type="button"
+        className={cn(
+          "w-full rounded-xl px-3 py-2.5 text-left transition-all duration-200 select-none",
+          selected
+            ? "glass glass-shine-always"
+            : "border border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
         )}
-      </div>
-    </button>
+        onClick={() => onSelect(skill)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <h3 className="text-sm font-medium truncate">{skill.name}</h3>
+        {skill.description && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            {skill.description}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {installedAgents(skill).map((slug) => (
+            <span
+              key={slug}
+              className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
+            >
+              {agents?.find((a) => a.slug === slug)?.name ?? slug}
+            </span>
+          ))}
+        </div>
+      </button>
+
+      {menu && (
+        <div
+          className="fixed z-50 w-[180px] rounded-xl glass-elevated p-1 shadow-lg animate-fade-in-up"
+          style={{ left: menu.x, top: menu.y }}
+        >
+          <button
+            className="w-full px-2.5 py-1.5 text-[13px] text-left rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+            onClick={() => {
+              onReveal(skill.canonical_path);
+              setMenu(null);
+            }}
+          >
+            {t("skills.revealInFinder")}
+          </button>
+          {hasInstallations && (
+            <button
+              className="w-full px-2.5 py-1.5 text-[13px] text-left rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => {
+                onUninstallAll(skill);
+                setMenu(null);
+              }}
+            >
+              {t("skills.uninstallAll")}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 });
+
+function repoSlugFromUrl(url: string): string | null {
+  // "https://github.com/MiniMax-AI/skills.git" → "MiniMax-AI/skills"
+  const cleaned = url.replace(/\/+$/, "").replace(/\.git$/, "");
+  const parts = cleaned.split("/");
+  if (parts.length >= 2) {
+    return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+  }
+  return null;
+}
 
 function getSourceLabel(source: unknown, t: (key: string) => string): string {
   if (!source) return t("skills.sourceUnknown");
@@ -378,7 +484,11 @@ function getSourceLabel(source: unknown, t: (key: string) => string): string {
   if (typeof source !== "object") return t("skills.sourceUnknown");
   const src = source as Record<string, unknown>;
   if ("LocalPath" in src) return t("skills.sourceLocalPath");
-  if ("GitRepository" in src) return t("skills.sourceGit");
+  if ("GitRepository" in src) {
+    const git = src["GitRepository"] as Record<string, unknown>;
+    const slug = typeof git.repo_url === "string" ? repoSlugFromUrl(git.repo_url) : null;
+    return slug ?? t("skills.sourceGit");
+  }
   if ("SkillsSh" in src) return t("skills.sourceSkillsSh");
   if ("ClawHub" in src) return t("skills.sourceClawHub");
   return t("skills.sourceUnknown");
@@ -491,11 +601,14 @@ function SkillDetail({
             {sourceRepo && (
               <>
                 <span className="text-xs text-muted-foreground">{t("skills.repository")}</span>
-                <p className="text-xs font-mono break-all">{sourceRepo}</p>
+                <button
+                  className="text-xs font-mono break-all text-left text-primary hover:underline cursor-pointer"
+                  onClick={() => openUrl(sourceRepo!)}
+                >
+                  {sourceRepo}
+                </button>
               </>
             )}
-            <span className="text-xs text-muted-foreground">{t("skills.id")}</span>
-            <p className="text-xs font-mono break-all">{skill.id}</p>
             <span className="text-xs text-muted-foreground">{t("skills.scope")}</span>
             <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium w-fit ${
               skill.scope.type === "SharedGlobal"
@@ -625,15 +738,6 @@ function SkillDetail({
       </div>
     </div>
   );
-}
-
-/** Extract markdown body after YAML frontmatter */
-function extractMarkdownBody(raw: string): string {
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith("---")) return trimmed;
-  const end = trimmed.indexOf("---", 3);
-  if (end === -1) return trimmed;
-  return trimmed.slice(end + 3).trim();
 }
 
 function DetailSection({

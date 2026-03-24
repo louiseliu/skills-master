@@ -23,6 +23,7 @@ import SearchInput from "@/components/SearchInput";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
+import { extractMarkdownBody } from "@/lib/markdown";
 
 interface MarketplaceSkill {
   name: string;
@@ -380,12 +381,27 @@ function MarketplaceSkillDetail({
 }) {
   const { t } = useTranslation();
   const anyInstalling = installingAgents.size > 0;
+  const remoteRepo = useMemo(
+    () => normalizeRepoUrl(skill.repository),
+    [skill.repository]
+  );
 
   // Find the matching local skill (if any agent has it installed)
-  const localSkill = useMemo(
-    () => localSkills?.find((s) => s.name === skill.name || s.id === skill.name),
-    [localSkills, skill.name]
-  );
+  const localSkill = useMemo(() => {
+    if (!localSkills?.length) return undefined;
+    return localSkills.find((s) => {
+      const nameMatches = s.name === skill.name || s.id === skill.name;
+      if (!nameMatches) return false;
+
+      // When repository exists, require source repository to match as well.
+      if (remoteRepo) {
+        const localRepo = normalizeRepoUrl(sourceRepository(s.source));
+        return localRepo === remoteRepo;
+      }
+
+      return true;
+    });
+  }, [localSkills, skill.name, remoteRepo]);
 
   // Compute install status once per relevant update
   const { localAgents, hasAnyInstalled, allInstalled, notInstalledAgents } = useMemo(() => {
@@ -401,8 +417,9 @@ function MarketplaceSkillDetail({
   }, [localSkill, detectedAgents]);
 
   // Defer the heavy markdown rendering so detail panel paints instantly
-  const deferredSkillKey = useDeferredValue(skill.name + "|" + skill.source);
-  const isStale = deferredSkillKey !== skill.name + "|" + skill.source;
+  const currentSkillKey = skillKey(skill);
+  const deferredSkillKey = useDeferredValue(currentSkillKey);
+  const isStale = deferredSkillKey !== currentSkillKey;
 
   // Fetch SKILL.md via React Query — cached across skill selections
   const { data: remoteContent, isLoading: contentLoading } = useQuery<
@@ -613,7 +630,7 @@ function MarketplaceSkillDetail({
 }
 
 function skillKey(skill: MarketplaceSkill): string {
-  return `${skill.name}|${skill.source}`;
+  return `${skill.source}|${normalizeRepoUrl(skill.repository) ?? "no-repo"}|${skill.name}`;
 }
 
 function InfoSection({
@@ -658,13 +675,31 @@ function InfoRow({
   );
 }
 
-/** Extract markdown body after YAML frontmatter */
-function extractMarkdownBody(raw: string): string {
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith("---")) return trimmed;
-  const end = trimmed.indexOf("---", 3);
-  if (end === -1) return trimmed;
-  return trimmed.slice(end + 3).trim();
+function sourceRepository(source: unknown): string | null {
+  if (!source || typeof source !== "object") return null;
+  const src = source as Record<string, unknown>;
+  if ("GitRepository" in src) {
+    const git = src["GitRepository"] as Record<string, unknown>;
+    return typeof git.repo_url === "string" ? git.repo_url : null;
+  }
+  if ("SkillsSh" in src) {
+    const skillsSh = src["SkillsSh"] as Record<string, unknown>;
+    return typeof skillsSh.repository === "string" ? skillsSh.repository : null;
+  }
+  if ("ClawHub" in src) {
+    const clawHub = src["ClawHub"] as Record<string, unknown>;
+    return typeof clawHub.repository === "string" ? clawHub.repository : null;
+  }
+  return null;
+}
+
+function normalizeRepoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return url
+    .trim()
+    .toLowerCase()
+    .replace(/\.git$/, "")
+    .replace(/\/+$/, "");
 }
 
 function formatInstalls(n: number): string {

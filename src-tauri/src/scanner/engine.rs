@@ -83,8 +83,13 @@ fn scan_skill_md_root(
             continue;
         }
 
-        let parsed = parse_skill_md_file(&skill_md)
-            .map_err(|e| ScannerError::Parse(format!("{}: {e}", skill_md.display())))?;
+        let parsed = match parse_skill_md_file(&skill_md) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("skipping {}: {e}", skill_md.display());
+                continue;
+            }
+        };
 
         // Dedup key = directory name
         let dir_name = skill_dir
