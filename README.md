@@ -55,6 +55,9 @@
 </p>
 <p align="center">
   <img src="docs/images/marketplace-light.png" width="48%" alt="AgentSkills marketplace view">
+  <img src="docs/images/import.png" width="48%" alt="AgentSkills import view">
+</p>
+<p align="center">
   <img src="docs/images/settings.png" width="48%" alt="AgentSkills settings view">
 </p>
 
@@ -73,13 +76,13 @@ Automatically detects your OS, architecture, and picks a matching installer from
 Linux / macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.4/install.sh | bash
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.3/install.ps1 | iex
+irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.4/install.ps1 | iex
 ```
 
 Supported formats: Linux (`.deb` / `.rpm` / `.AppImage`) | macOS (`.dmg`) | Windows (`.exe` / `.msi`)

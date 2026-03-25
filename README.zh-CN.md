@@ -50,12 +50,15 @@
 ## 界面导览
 
 <p align="center">
-  <img src="docs/images/dashboard-light.png" width="48%" alt="AgentSkills 仪表盘视图">
-  <img src="docs/images/skills-light.png" width="48%" alt="AgentSkills 技能管理视图">
+  <img src="docs/images/dashboard-light-cn.png" width="48%" alt="AgentSkills 仪表盘视图">
+  <img src="docs/images/skills-cn.png" width="48%" alt="AgentSkills 技能管理视图">
 </p>
 <p align="center">
-  <img src="docs/images/marketplace-light.png" width="48%" alt="AgentSkills 市场视图">
-  <img src="docs/images/settings.png" width="48%" alt="AgentSkills 设置视图">
+  <img src="docs/images/marketplace-light-cn.png" width="48%" alt="AgentSkills 市场视图">
+  <img src="docs/images/import-cn.png" width="48%" alt="AgentSkills 导入视图">
+</p>
+<p align="center">
+  <img src="docs/images/setting-cn.png" width="48%" alt="AgentSkills 设置视图">
 </p>
 
 ## 技术栈
@@ -73,13 +76,13 @@
 Linux / macOS：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.3/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.4/install.sh | bash
 ```
 
 Windows（PowerShell）：
 
 ```powershell
-irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.3/install.ps1 | iex
+irm https://raw.githubusercontent.com/chrlsio/agent-skills/v0.1.4/install.ps1 | iex
 ```
 
 支持格式：Linux（`.deb` / `.rpm` / `.AppImage`）| macOS（`.dmg`）| Windows（`.exe` / `.msi`）
