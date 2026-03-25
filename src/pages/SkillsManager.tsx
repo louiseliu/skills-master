@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Puzzle,
-  Trash2,
   Copy,
   X,
   Loader2,
@@ -12,20 +11,85 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { revealItemInDir, openUrl } from "@tauri-apps/plugin-opener";
+import { AgentRow } from "@/components/AgentRow";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useSkills, installedAgents, type Skill } from "@/hooks/useSkills";
+import { useRepos } from "@/hooks/useRepos";
+
+/** Skill extended with optional repo origin */
+type SkillWithRepo = Skill & { _repoName?: string };
 import { useAgents, type AgentConfig } from "@/hooks/useAgents";
 import { useResizable } from "@/hooks/useResizable";
 import ResizeHandle from "@/components/ResizeHandle";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
 import MarkdownContent from "@/components/MarkdownContent";
+import { useToast } from "@/components/ToastProvider";
+import { cn } from "@/lib/utils";
+import { extractMarkdownBody } from "@/lib/markdown";
 
 export default function SkillsManager() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { data: skills, isLoading } = useSkills();
   const { data: agents } = useAgents();
+  const { data: repos } = useRepos();
+
+  // Fetch skills from all subscribed repos
+  const repoSkillQueries = useQueries({
+    queries: (repos ?? []).map((repo) => ({
+      queryKey: ["repo-skills", repo.id],
+      queryFn: () => invoke<Skill[]>("list_repo_skills", { repoIdParam: repo.id }),
+      staleTime: 30 * 1000,
+    })),
+  });
+
+  // Stable data reference for repo skills to avoid re-renders
+  const repoSkillsData = repoSkillQueries.map((q) => q.data);
+
+  // Merge local skills + repo skills (dedup by skill id, local wins)
+  // For installed skills that match a repo skill, carry over the repo source info
+  const mergedSkills = useMemo(() => {
+    const localSkills = skills ?? [];
+    const localById = new Map(localSkills.map((s) => [s.id, s]));
+
+    // Build a map of repo skill source info by skill id
+    const repoSourceById = new Map<string, { source: unknown; repoName: string }>();
+    repoSkillsData.forEach((data, idx) => {
+      if (data) {
+        const repoName = repos?.[idx]?.name ?? "Repo";
+        for (const s of data) {
+          repoSourceById.set(s.id, { source: s.source, repoName });
+        }
+      }
+    });
+
+    // Enrich local skills with repo source info where available
+    const enrichedLocal: SkillWithRepo[] = localSkills.map((s) => {
+      const repoInfo = repoSourceById.get(s.id);
+      if (repoInfo) {
+        return { ...s, source: repoInfo.source, _repoName: repoInfo.repoName };
+      }
+      return s;
+    });
+
+    // Add repo-only skills (not installed locally)
+    const repoOnly: SkillWithRepo[] = [];
+    repoSkillsData.forEach((data, idx) => {
+      if (data) {
+        const repoName = repos?.[idx]?.name ?? "Repo";
+        for (const s of data) {
+          if (!localById.has(s.id)) {
+            repoOnly.push({ ...s, _repoName: repoName });
+          }
+        }
+      }
+    });
+
+    return [...enrichedLocal, ...repoOnly];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skills, ...repoSkillsData, repos]);
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>(
@@ -57,14 +121,14 @@ export default function SkillsManager() {
   useEffect(() => {
     const list =
       filter === "all"
-        ? skills
-        : skills?.filter((s) => installedAgents(s).includes(filter));
+        ? mergedSkills
+        : mergedSkills?.filter((s) => installedAgents(s).includes(filter));
     if (list?.length && !selectedId) {
       setSelectedId(list[0].id);
       setSelectedSkill(list[0]);
       setPanelMode("detail");
     }
-  }, [skills, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mergedSkills, filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function changeFilter(f: string) {
     setFilter(f);
@@ -96,8 +160,8 @@ export default function SkillsManager() {
   // Filter by agent, then by deferred search query (name + description)
   const filtered = useMemo(() => {
     let list = filter === "all"
-      ? skills
-      : skills?.filter((s) => installedAgents(s).includes(filter));
+      ? mergedSkills
+      : mergedSkills?.filter((s) => installedAgents(s).includes(filter));
     if (deferredSearch.trim()) {
       const q = deferredSearch.toLowerCase();
       list = list?.filter(
@@ -108,7 +172,7 @@ export default function SkillsManager() {
       );
     }
     return list;
-  }, [skills, filter, deferredSearch]);
+  }, [mergedSkills, filter, deferredSearch]);
 
   async function refreshAndReselect() {
     // Force a fresh scan, bypassing cache
@@ -133,6 +197,26 @@ export default function SkillsManager() {
       await refreshAndReselect();
     } catch (e) {
       console.error("Uninstall failed:", e instanceof Error ? e.message : String(e));
+      toast(t("skills.uninstallFailed"), "destructive");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleUninstallAll(skill: Skill) {
+    const slugs = installedAgents(skill);
+    if (!slugs.length) return;
+    setBusy(skill.canonical_path);
+    try {
+      for (const slug of slugs) {
+        await invoke("uninstall_skill", { skillId: skill.canonical_path, agentSlug: slug });
+      }
+      setSelectedId(null);
+      setSelectedSkill(null);
+      await refreshAndReselect();
+    } catch (e) {
+      console.error("Uninstall all failed:", e instanceof Error ? e.message : String(e));
+      toast(t("skills.uninstallFailed"), "destructive");
     } finally {
       setBusy(null);
     }
@@ -145,6 +229,7 @@ export default function SkillsManager() {
       await refreshAndReselect();
     } catch (e) {
       console.error("Sync failed:", e instanceof Error ? e.message : String(e));
+      toast(t("skills.syncFailed"), "destructive");
     } finally {
       setBusy(null);
     }
@@ -161,7 +246,7 @@ export default function SkillsManager() {
           <div className="flex items-center gap-2">
             <Puzzle className="size-4" />
             <h1 className="text-sm font-semibold">{t("skills.title")}</h1>
-            {skills && (
+            {mergedSkills && (
               <span className="text-sm text-muted-foreground">
                 ({filtered?.length})
               </span>
@@ -200,9 +285,24 @@ export default function SkillsManager() {
 
         {/* Skill list */}
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t("skills.scanningSkills")}</p>
+          <div className="space-y-1.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-transparent px-3 py-2.5 space-y-2">
+                <div className="h-4 w-28 rounded animate-skeleton" />
+                <div className="h-3 w-40 rounded animate-skeleton" />
+                <div className="flex gap-1">
+                  <div className="h-4 w-12 rounded-full animate-skeleton" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : !filtered?.length ? (
-          <p className="text-sm text-muted-foreground">{t("skills.noSkillsFound")}</p>
+          <div className="rounded-2xl border border-dashed border-black/[0.06] dark:border-white/[0.06] p-8 text-center">
+            <div className="inline-flex size-12 items-center justify-center rounded-xl glass mb-3">
+              <Puzzle className="size-6 text-primary/40" />
+            </div>
+            <p className="text-sm text-muted-foreground">{t("skills.noSkillsFound")}</p>
+          </div>
         ) : (
           <div
             className="space-y-1 transition-opacity"
@@ -215,6 +315,8 @@ export default function SkillsManager() {
                 selected={selectedId === skill.id}
                 agents={agents}
                 onSelect={selectSkill}
+                onReveal={revealItemInDir}
+                onUninstallAll={handleUninstallAll}
               />
             ))}
           </div>
@@ -223,10 +325,25 @@ export default function SkillsManager() {
 
       <ResizeHandle onMouseDown={listPane.onMouseDown} />
 
+      {!selectedId && (
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-6">
+          {filtered && filtered.length > 0 ? (
+            <div className="text-center">
+              <div className="inline-flex size-16 items-center justify-center rounded-2xl glass mb-4">
+                <Puzzle className="size-8 text-primary/30" />
+              </div>
+              <p className="max-w-xs text-sm text-muted-foreground/80">
+                {t("skills.selectToView")}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* Detail / Editor panel */}
       {selectedId && panelMode === "detail" && (
         isPending || !selectedSkill ? (
-          <div className="flex-1 min-w-0 bg-card flex items-center justify-center">
+          <div className="flex-1 min-w-0 m-2 ml-0 rounded-2xl glass-panel flex items-center justify-center">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
@@ -257,38 +374,109 @@ const SkillListItem = memo(function SkillListItem({
   selected,
   agents,
   onSelect,
+  onReveal,
+  onUninstallAll,
 }: {
-  skill: Skill;
+  skill: SkillWithRepo;
   selected: boolean;
   agents: import("@/hooks/useAgents").AgentConfig[] | undefined;
-  onSelect: (skill: Skill) => void;
+  onSelect: (skill: SkillWithRepo) => void;
+  onReveal: (path: string) => void;
+  onUninstallAll: (skill: SkillWithRepo) => void;
 }) {
+  const { t } = useTranslation();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const hasInstallations = installedAgents(skill).length > 0;
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    // Register on next frame so the opening event doesn't immediately close the menu
+    const raf = requestAnimationFrame(() => {
+      document.addEventListener("click", close);
+      document.addEventListener("contextmenu", close);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("click", close);
+      document.removeEventListener("contextmenu", close);
+    };
+  }, [menu]);
+
   return (
-    <div
-      className={`rounded-md border px-3 py-2.5 transition-colors cursor-pointer hover:bg-accent/50 ${
-        selected ? "border-primary bg-accent/30" : "border-transparent"
-      }`}
-      onClick={() => onSelect(skill)}
-    >
-      <h3 className="text-sm font-medium truncate">{skill.name}</h3>
-      {skill.description && (
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-          {skill.description}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-1 mt-1.5">
-        {installedAgents(skill).map((slug) => (
-          <span
-            key={slug}
-            className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
+    <div className="relative">
+      <button
+        type="button"
+        className={cn(
+          "w-full rounded-xl px-3 py-2.5 text-left transition-all duration-200 select-none",
+          selected
+            ? "glass glass-shine-always"
+            : "border border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+        )}
+        onClick={() => onSelect(skill)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <h3 className="text-sm font-medium truncate">{skill.name}</h3>
+        {skill.description && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            {skill.description}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {installedAgents(skill).map((slug) => (
+            <span
+              key={slug}
+              className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
+            >
+              {agents?.find((a) => a.slug === slug)?.name ?? slug}
+            </span>
+          ))}
+        </div>
+      </button>
+
+      {menu && (
+        <div
+          className="fixed z-50 w-[180px] rounded-xl glass-elevated p-1 shadow-lg animate-fade-in-up"
+          style={{ left: menu.x, top: menu.y }}
+        >
+          <button
+            className="w-full px-2.5 py-1.5 text-[13px] text-left rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+            onClick={() => {
+              onReveal(skill.canonical_path);
+              setMenu(null);
+            }}
           >
-            {agents?.find((a) => a.slug === slug)?.name ?? slug}
-          </span>
-        ))}
-      </div>
+            {t("skills.revealInFinder")}
+          </button>
+          {hasInstallations && (
+            <button
+              className="w-full px-2.5 py-1.5 text-[13px] text-left rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => {
+                onUninstallAll(skill);
+                setMenu(null);
+              }}
+            >
+              {t("skills.uninstallAll")}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 });
+
+function repoSlugFromUrl(url: string): string | null {
+  // "https://github.com/MiniMax-AI/skills.git" → "MiniMax-AI/skills"
+  const cleaned = url.replace(/\/+$/, "").replace(/\.git$/, "");
+  const parts = cleaned.split("/");
+  if (parts.length >= 2) {
+    return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+  }
+  return null;
+}
 
 function getSourceLabel(source: unknown, t: (key: string) => string): string {
   if (!source) return t("skills.sourceUnknown");
@@ -296,7 +484,11 @@ function getSourceLabel(source: unknown, t: (key: string) => string): string {
   if (typeof source !== "object") return t("skills.sourceUnknown");
   const src = source as Record<string, unknown>;
   if ("LocalPath" in src) return t("skills.sourceLocalPath");
-  if ("GitRepository" in src) return t("skills.sourceGit");
+  if ("GitRepository" in src) {
+    const git = src["GitRepository"] as Record<string, unknown>;
+    const slug = typeof git.repo_url === "string" ? repoSlugFromUrl(git.repo_url) : null;
+    return slug ?? t("skills.sourceGit");
+  }
   if ("SkillsSh" in src) return t("skills.sourceSkillsSh");
   if ("ClawHub" in src) return t("skills.sourceClawHub");
   return t("skills.sourceUnknown");
@@ -364,9 +556,9 @@ function SkillDetail({
   });
 
   return (
-    <div className="flex-1 min-w-0 bg-card flex flex-col overflow-y-auto">
+    <div className="flex-1 min-w-0 m-2 ml-0 rounded-2xl glass-panel flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Info className="size-4 shrink-0 text-muted-foreground" />
           <h3 className="text-sm font-medium truncate">{t("skills.detail")}</h3>
@@ -377,7 +569,7 @@ function SkillDetail({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* Header: Name & Description */}
         <div>
           <h2 className="text-base font-semibold leading-tight">
@@ -409,11 +601,14 @@ function SkillDetail({
             {sourceRepo && (
               <>
                 <span className="text-xs text-muted-foreground">{t("skills.repository")}</span>
-                <p className="text-xs font-mono break-all">{sourceRepo}</p>
+                <button
+                  className="text-xs font-mono break-all text-left text-primary hover:underline cursor-pointer"
+                  onClick={() => openUrl(sourceRepo!)}
+                >
+                  {sourceRepo}
+                </button>
               </>
             )}
-            <span className="text-xs text-muted-foreground">{t("skills.id")}</span>
-            <p className="text-xs font-mono break-all">{skill.id}</p>
             <span className="text-xs text-muted-foreground">{t("skills.scope")}</span>
             <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium w-fit ${
               skill.scope.type === "SharedGlobal"
@@ -466,82 +661,24 @@ function SkillDetail({
               const installed = !!inst;
               const inherited = !inst && !!inheritedInst;
               return (
-                <div
+                <AgentRow
                   key={agent.slug}
-                  className={`rounded-md px-2.5 py-2 text-xs ${
-                    installed
-                      ? "bg-secondary/60"
-                      : inherited
-                        ? "bg-secondary/30"
-                        : "bg-muted/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={`size-1.5 rounded-full shrink-0 ${
-                          installed
-                            ? "bg-green-500"
-                            : inherited
-                              ? "bg-blue-400"
-                              : "bg-muted-foreground/30"
-                        }`}
-                      />
-                      <span
-                        className={
-                          installed || inherited
-                            ? "font-medium truncate"
-                            : "text-muted-foreground truncate"
-                        }
-                      >
-                        {agent.name}
-                      </span>
-                      {inherited && inheritedInst?.inherited_from && (
-                        <span className="text-[10px] text-muted-foreground/60 shrink-0">
-                          {t("skills.via", { name: detectedAgents.find((a) => a.slug === inheritedInst.inherited_from)?.name ?? inheritedInst.inherited_from })}
-                        </span>
-                      )}
-                      {inst?.is_symlink && (
-                        <span className="text-[10px] text-muted-foreground/50 shrink-0">
-                          {t("skills.symlink")}
-                        </span>
-                      )}
-                    </div>
-                    {installed ? (
-                      <button
-                        className="text-destructive/60 hover:text-destructive transition-colors disabled:opacity-50 shrink-0"
-                        title={`${t("skills.uninstall")} ${agent.name}`}
-                        disabled={busy === skill.canonical_path + agent.slug}
-                        onClick={() => onUninstall(skill.canonical_path, agent.slug)}
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
-                    ) : !inherited ? (
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        className="shrink-0 h-5 px-2 text-[10px]"
-                        title={`${t("skills.install")} ${agent.name}`}
-                        disabled={busy === skill.canonical_path + agent.slug}
-                        onClick={() =>
-                          onSync(skill.canonical_path, [agent.slug])
-                        }
-                      >
-                        <Copy className="size-2.5" />
-                        {t("skills.install")}
-                      </Button>
-                    ) : null}
-                  </div>
-                  {installation?.path && (
-                    <button
-                      className="text-[10px] text-muted-foreground/70 hover:text-primary font-mono mt-1 pl-[18px] break-all text-left leading-relaxed transition-colors cursor-pointer"
-                      title={t("skills.revealInFinder")}
-                      onClick={() => revealItemInDir(installation.path)}
-                    >
-                      {installation.path}
-                    </button>
-                  )}
-                </div>
+                  name={agent.name}
+                  status={installed ? "installed" : inherited ? "inherited" : "not-installed"}
+                  path={installation?.path}
+                  tags={inherited && inheritedInst?.inherited_from ? (
+                    <span className="text-[10px] text-muted-foreground/60 shrink-0">
+                      {t("skills.via", { name: detectedAgents.find((a) => a.slug === inheritedInst.inherited_from)?.name ?? inheritedInst.inherited_from })}
+                    </span>
+                  ) : undefined}
+                  onUninstall={() => onUninstall(skill.canonical_path, agent.slug)}
+                  onInstall={() => onSync(skill.canonical_path, [agent.slug])}
+                  uninstallTitle={`${t("skills.uninstall")} ${agent.name}`}
+                  installLabel={t("skills.install")}
+                  installTitle={`${t("skills.install")} ${agent.name}`}
+                  revealTitle={t("skills.revealInFinder")}
+                  disabled={busy === skill.canonical_path + agent.slug}
+                />
               );
             })}
           </div>
@@ -603,15 +740,6 @@ function SkillDetail({
   );
 }
 
-/** Extract markdown body after YAML frontmatter */
-function extractMarkdownBody(raw: string): string {
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith("---")) return trimmed;
-  const end = trimmed.indexOf("---", 3);
-  if (end === -1) return trimmed;
-  return trimmed.slice(end + 3).trim();
-}
-
 function DetailSection({
   label,
   children,
@@ -639,6 +767,7 @@ function SkillEditor({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -671,15 +800,16 @@ function SkillEditor({
       setDirty(false);
     } catch (e) {
       console.error("Save failed:", e instanceof Error ? e.message : String(e));
+      toast(t("skills.saveFailed"), "destructive");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="flex-1 min-w-0 bg-card flex flex-col">
+    <div className="flex-1 min-w-0 m-2 ml-0 rounded-2xl glass-panel flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Button
             variant="ghost"

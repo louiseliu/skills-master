@@ -12,6 +12,7 @@ pub mod watcher;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             paths::init(app.handle());
             watcher::start_skill_watcher(app.handle().clone());
@@ -36,6 +37,13 @@ pub fn run() {
             commands::settings::read_settings,
             commands::settings::write_settings,
             commands::settings::clear_marketplace_cache,
+            commands::repos::add_skill_repo,
+            commands::repos::add_local_dir,
+            commands::repos::remove_skill_repo,
+            commands::repos::list_skill_repos,
+            commands::repos::sync_skill_repo,
+            commands::repos::list_repo_skills,
+            commands::repos::install_repo_skill,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -9,12 +9,11 @@ import {
   User,
   Tag,
   Check,
-  Copy,
-  Trash2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { AgentRow } from "@/components/AgentRow";
 import { useAgents, type AgentConfig } from "@/hooks/useAgents";
 import { useSkills, installedAgents as getInstalledAgents, type Skill } from "@/hooks/useSkills";
 import MarkdownContent from "@/components/MarkdownContent";
@@ -22,6 +21,9 @@ import { useResizable } from "@/hooks/useResizable";
 import ResizeHandle from "@/components/ResizeHandle";
 import SearchInput from "@/components/SearchInput";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ToastProvider";
+import { cn } from "@/lib/utils";
+import { extractMarkdownBody } from "@/lib/markdown";
 
 interface MarketplaceSkill {
   name: string;
@@ -39,6 +41,7 @@ const SOURCES = [
 
 export default function Marketplace() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [source, setSource] = useState("skills.sh");
   const [skillsshSort, setSkillsshSort] = useState("all-time");
   const [clawhubSort, setClawhubSort] = useState("default");
@@ -155,6 +158,7 @@ export default function Marketplace() {
       });
     } catch (e) {
       console.error("Install failed:", e instanceof Error ? e.message : String(e));
+      toast(t("marketplace.installFailed"), "destructive");
     } finally {
       setInstallingAgents((prev) => {
         const next = new Set(prev);
@@ -175,6 +179,7 @@ export default function Marketplace() {
       });
     } catch (e) {
       console.error("Uninstall failed:", e instanceof Error ? e.message : String(e));
+      toast(t("marketplace.uninstallFailed"), "destructive");
     } finally {
       setInstallingAgents((prev) => {
         const next = new Set(prev);
@@ -196,9 +201,9 @@ export default function Marketplace() {
           <h1 className="text-sm font-semibold">{t("marketplace.title")}</h1>
         </div>
 
-        {/* Source tabs */}
-        <div className="flex items-center gap-4">
-          <div className="flex gap-1.5">
+        {/* Source tabs + sorts: stack on narrow panes, wrap gracefully */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+          <div className="flex min-w-0 flex-wrap gap-1.5">
             {SOURCES.map((s) => (
               <Button
                 key={s.key}
@@ -215,9 +220,8 @@ export default function Marketplace() {
             ))}
           </div>
 
-          {/* Sort buttons */}
           {!searchQuery && (
-            <div className="flex gap-1">
+            <div className="flex min-w-0 flex-wrap gap-1">
               {sorts.map((s) => (
                 <Button
                   key={s.key}
@@ -242,18 +246,34 @@ export default function Marketplace() {
 
         {/* Results */}
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-            <Loader2 className="size-4 animate-spin" />
-            {t("marketplace.loading")}
+          <div className="space-y-1.5 py-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-lg px-3 py-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 w-28 rounded animate-skeleton" />
+                  <div className="h-3 w-8 rounded animate-skeleton" />
+                </div>
+                <div className="h-3 w-44 rounded animate-skeleton" />
+                <div className="flex gap-2">
+                  <div className="h-3 w-16 rounded animate-skeleton" />
+                  <div className="h-4 w-12 rounded-full animate-skeleton" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
-          <p className="text-sm text-destructive py-4">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
             {t("marketplace.failedToLoad", { error: String(error) })}
-          </p>
+          </div>
         ) : !items?.length ? (
-          <p className="text-sm text-muted-foreground py-4">
-            {t("marketplace.noSkillsFound")}
-          </p>
+          <div className="rounded-2xl border border-dashed border-black/[0.06] dark:border-white/[0.06] p-8 text-center">
+            <div className="inline-flex size-12 items-center justify-center rounded-xl glass mb-3">
+              <Store className="size-6 text-primary/40" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t("marketplace.noSkillsFound")}
+            </p>
+          </div>
         ) : (
           <div className="space-y-1">
             {items.map((skill) => (
@@ -273,7 +293,7 @@ export default function Marketplace() {
       {/* Detail panel */}
       {selectedKey && (
         !selectedSkill ? (
-          <div className="flex-1 min-w-0 bg-card flex items-center justify-center">
+          <div className="flex-1 min-w-0 m-2 ml-0 rounded-2xl glass-panel flex items-center justify-center">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
@@ -303,12 +323,14 @@ const MarketplaceListItem = memo(function MarketplaceListItem({
 }) {
   const key = skillKey(skill);
   return (
-    <div
-      className={`rounded-md border px-3 py-2.5 cursor-pointer transition-colors hover:bg-accent/50 ${
+    <button
+      type="button"
+      className={cn(
+        "w-full rounded-xl px-3 py-2.5 text-left transition-all duration-200",
         selected
-          ? "border-primary bg-accent/30"
-          : "border-transparent"
-      }`}
+          ? "glass glass-shine-always"
+          : "border border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+      )}
       onClick={() => onSelect(key)}
     >
       <div className="flex items-center justify-between gap-2">
@@ -336,7 +358,7 @@ const MarketplaceListItem = memo(function MarketplaceListItem({
           {skill.source}
         </span>
       </div>
-    </div>
+    </button>
   );
 });
 
@@ -359,12 +381,27 @@ function MarketplaceSkillDetail({
 }) {
   const { t } = useTranslation();
   const anyInstalling = installingAgents.size > 0;
+  const remoteRepo = useMemo(
+    () => normalizeRepoUrl(skill.repository),
+    [skill.repository]
+  );
 
   // Find the matching local skill (if any agent has it installed)
-  const localSkill = useMemo(
-    () => localSkills?.find((s) => s.name === skill.name || s.id === skill.name),
-    [localSkills, skill.name]
-  );
+  const localSkill = useMemo(() => {
+    if (!localSkills?.length) return undefined;
+    return localSkills.find((s) => {
+      const nameMatches = s.name === skill.name || s.id === skill.name;
+      if (!nameMatches) return false;
+
+      // When repository exists, require source repository to match as well.
+      if (remoteRepo) {
+        const localRepo = normalizeRepoUrl(sourceRepository(s.source));
+        return localRepo === remoteRepo;
+      }
+
+      return true;
+    });
+  }, [localSkills, skill.name, remoteRepo]);
 
   // Compute install status once per relevant update
   const { localAgents, hasAnyInstalled, allInstalled, notInstalledAgents } = useMemo(() => {
@@ -380,8 +417,9 @@ function MarketplaceSkillDetail({
   }, [localSkill, detectedAgents]);
 
   // Defer the heavy markdown rendering so detail panel paints instantly
-  const deferredSkillKey = useDeferredValue(skill.name + "|" + skill.source);
-  const isStale = deferredSkillKey !== skill.name + "|" + skill.source;
+  const currentSkillKey = skillKey(skill);
+  const deferredSkillKey = useDeferredValue(currentSkillKey);
+  const isStale = deferredSkillKey !== currentSkillKey;
 
   // Fetch SKILL.md via React Query — cached across skill selections
   const { data: remoteContent, isLoading: contentLoading } = useQuery<
@@ -401,9 +439,9 @@ function MarketplaceSkillDetail({
   });
 
   return (
-    <div className="flex-1 min-w-0 bg-card flex flex-col overflow-y-auto">
+    <div className="flex-1 min-w-0 m-2 ml-0 rounded-2xl glass-panel flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3">
         <h3 className="text-sm font-medium truncate">{t("marketplace.detail")}</h3>
         <Button variant="ghost" size="icon-sm" onClick={onClose}>
           <X className="size-4" />
@@ -411,7 +449,7 @@ function MarketplaceSkillDetail({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* Header: Name + install action */}
         <div>
           <div className="flex items-start justify-between gap-3">
@@ -476,69 +514,25 @@ function MarketplaceSkillDetail({
                     (i) => i.agent_slug === agent.slug
                   );
                   return (
-                    <div
+                    <AgentRow
                       key={agent.slug}
-                      className={`rounded-md px-2.5 py-2 text-xs ${
-                        isInstalled ? "bg-secondary/60" : "bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`size-1.5 rounded-full shrink-0 ${
-                              isInstalled
-                                ? "bg-green-500"
-                                : "bg-muted-foreground/30"
-                            }`}
-                          />
-                          <span
-                            className={
-                              isInstalled
-                                ? "font-medium"
-                                : "text-muted-foreground"
-                            }
-                          >
-                            {agent.name}
-                          </span>
-                        </div>
-                        {isInstalled && installation ? (
-                          <button
-                            className="flex items-center justify-center h-5 w-5 rounded text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-                            title={`Uninstall from ${agent.name}`}
-                            disabled={anyInstalling}
-                            onClick={() => onUninstall(installation.path, agent.slug)}
-                          >
-                            <Trash2 className="size-3" />
-                          </button>
-                        ) : installingAgents.has(agent.slug) ? (
-                          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <Loader2 className="size-2.5 animate-spin" />
-                            {t("marketplace.installing")}
-                          </span>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            className="shrink-0 h-5 px-2 text-[10px]"
-                            disabled={anyInstalling || !skill.repository}
-                            onClick={() => onInstall([agent.slug])}
-                          >
-                            <Copy className="size-2.5" />
-                            {t("marketplace.install")}
-                          </Button>
-                        )}
-                      </div>
-                      {/* Show local path for installed agents */}
-                      {installation?.path && (
-                        <button
-                          className="text-[10px] text-muted-foreground/70 hover:text-primary font-mono mt-1 pl-[18px] break-all text-left leading-relaxed transition-colors cursor-pointer"
-                          title="Reveal in Finder"
-                          onClick={() => revealItemInDir(installation.path)}
-                        >
-                          {installation.path}
-                        </button>
-                      )}
-                    </div>
+                      name={agent.name}
+                      status={isInstalled ? "installed" : "not-installed"}
+                      path={installation?.path}
+                      onUninstall={installation ? () => onUninstall(installation.path, agent.slug) : undefined}
+                      onInstall={() => onInstall([agent.slug])}
+                      uninstallTitle={`Uninstall from ${agent.name}`}
+                      installLabel={t("marketplace.install")}
+                      installTitle={`${t("marketplace.install")} ${agent.name}`}
+                      revealTitle={t("marketplace.revealInFinder")}
+                      disabled={anyInstalling || !skill.repository}
+                      action={installingAgents.has(agent.slug) ? (
+                        <span className="shrink-0 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Loader2 className="size-2.5 animate-spin" />
+                          {t("marketplace.installing")}
+                        </span>
+                      ) : undefined}
+                    />
                   );
                 })}
               </div>
@@ -636,7 +630,7 @@ function MarketplaceSkillDetail({
 }
 
 function skillKey(skill: MarketplaceSkill): string {
-  return `${skill.name}|${skill.source}`;
+  return `${skill.source}|${normalizeRepoUrl(skill.repository) ?? "no-repo"}|${skill.name}`;
 }
 
 function InfoSection({
@@ -681,13 +675,31 @@ function InfoRow({
   );
 }
 
-/** Extract markdown body after YAML frontmatter */
-function extractMarkdownBody(raw: string): string {
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith("---")) return trimmed;
-  const end = trimmed.indexOf("---", 3);
-  if (end === -1) return trimmed;
-  return trimmed.slice(end + 3).trim();
+function sourceRepository(source: unknown): string | null {
+  if (!source || typeof source !== "object") return null;
+  const src = source as Record<string, unknown>;
+  if ("GitRepository" in src) {
+    const git = src["GitRepository"] as Record<string, unknown>;
+    return typeof git.repo_url === "string" ? git.repo_url : null;
+  }
+  if ("SkillsSh" in src) {
+    const skillsSh = src["SkillsSh"] as Record<string, unknown>;
+    return typeof skillsSh.repository === "string" ? skillsSh.repository : null;
+  }
+  if ("ClawHub" in src) {
+    const clawHub = src["ClawHub"] as Record<string, unknown>;
+    return typeof clawHub.repository === "string" ? clawHub.repository : null;
+  }
+  return null;
+}
+
+function normalizeRepoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return url
+    .trim()
+    .toLowerCase()
+    .replace(/\.git$/, "")
+    .replace(/\/+$/, "");
 }
 
 function formatInstalls(n: number): string {

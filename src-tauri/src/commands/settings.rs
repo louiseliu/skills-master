@@ -4,11 +4,19 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepoEntry {
+    pub repo_url: Option<String>,
+    pub local_path: Option<String>,
+    pub last_synced: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppSettings {
     pub theme: Option<String>,
     pub language: Option<String>,
     pub path_overrides: Option<HashMap<String, Vec<String>>>,
+    pub repos: Option<Vec<RepoEntry>>,
 }
 
 fn settings_path() -> PathBuf {

@@ -1,8 +1,14 @@
 const en = {
+  // === Common ===
+  common: {
+    importFolderFailed: "Could not add local folder.",
+  },
+
   // === Layout / Sidebar ===
   sidebar: {
     dashboard: "Dashboard",
-    skills: "Skills",
+    skills: "All Skills",
+    agents: "Agents",
     marketplace: "Marketplace",
     settings: "Settings",
   },
@@ -94,6 +100,11 @@ const en = {
     backToDetail: "Back to detail",
     save: "Save",
     failedToLoad: "# Failed to load SKILL.md",
+    selectToView: "Select a skill from the list to view details.",
+    saveFailed: "Could not save SKILL.md.",
+    syncFailed: "Could not sync skill.",
+    uninstallFailed: "Could not uninstall skill.",
+    uninstallAll: "Uninstall from All Agents",
   },
 
   // === Marketplace ===
@@ -128,6 +139,9 @@ const en = {
     sortDefault: "Default",
     sortDownloads: "Downloads",
     sortStars: "Stars",
+    revealInFinder: "Reveal in Finder",
+    installFailed: "Could not install skill.",
+    uninstallFailed: "Could not uninstall skill.",
   },
 
   // === Settings ===
@@ -139,6 +153,14 @@ const en = {
     light: "light",
     dark: "dark",
     system: "system",
+    // Accent Color
+    accentColor: "Accent Color",
+    accentIndigo: "Indigo",
+    accentCoral: "Coral",
+    accentTeal: "Teal",
+    accentAmber: "Amber",
+    accentRose: "Rose",
+    accentMono: "Mono",
     // Language
     language: "Language",
     // Marketplace Cache
@@ -150,6 +172,45 @@ const en = {
     agentSkillPaths: "Agent Skill Paths",
     agentPathsDescription: "Default skill directories for each agent.",
     revealInFinder: "Reveal in Finder",
+    about: "About",
+  },
+
+  // === Repos ===
+  repos: {
+    importRepo: "Import from Git",
+    importLocal: "Import from Local",
+    importDescription: "Add a Git repository URL to browse and install skills from it.",
+    importLocalDescription: "Select a local directory containing skills to register as a skill source.",
+    cancel: "Cancel",
+    add: "Add",
+    cloning: "Cloning repository...",
+    scanning: "Scanning skills...",
+    savingConfig: "Saving configuration...",
+    fetching: "Fetching updates...",
+    merging: "Merging changes...",
+    skillRepos: "Skill Sources",
+    reposDescription: "Git repositories and local directories registered as skill sources.",
+    sync: "Sync",
+    remove: "Remove",
+    skillCountLabel: "{{count}} skills",
+    lastSynced: "Synced: {{time}}",
+    noRepos: "No skill sources added yet.",
+    selectSkills: "Select Skills",
+    skillsFound: "{{count}} skills found",
+    selectAll: "Select All",
+    deselectAll: "Deselect All",
+    next: "Next ({{count}})",
+    back: "Back",
+    selectAgents: "Select Agents",
+    selectFolder: "Select Folder",
+    installCount: "Install ({{count}})",
+    installingProgress: "Installing {{done}} of {{total}}...",
+    installingSkill: "Installing {{name}}...",
+    noSkillsFound: "No skills found in this source.",
+    noAgentsDetected: "No agents detected.",
+    repoSource: "Repo: {{name}}",
+    localSource: "Local",
+    gitSource: "Git",
   },
 } as const;
 

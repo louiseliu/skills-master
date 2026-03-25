@@ -1,8 +1,14 @@
 const zhCN = {
+  // === Common ===
+  common: {
+    importFolderFailed: "无法添加本地文件夹。",
+  },
+
   // === Layout / Sidebar ===
   sidebar: {
     dashboard: "仪表盘",
-    skills: "技能管理",
+    skills: "全部技能",
+    agents: "Agents",
     marketplace: "市场",
     settings: "设置",
   },
@@ -94,6 +100,11 @@ const zhCN = {
     backToDetail: "返回详情",
     save: "保存",
     failedToLoad: "# 加载 SKILL.md 失败",
+    selectToView: "在左侧列表中选择一个技能以查看详情。",
+    saveFailed: "无法保存 SKILL.md。",
+    syncFailed: "无法同步技能。",
+    uninstallFailed: "无法卸载技能。",
+    uninstallAll: "从所有 Agent 卸载",
   },
 
   // === Marketplace ===
@@ -128,6 +139,9 @@ const zhCN = {
     sortDefault: "默认",
     sortDownloads: "下载量",
     sortStars: "星标",
+    revealInFinder: "在 Finder 中显示",
+    installFailed: "无法安装技能。",
+    uninstallFailed: "无法卸载技能。",
   },
 
   // === Settings ===
@@ -139,6 +153,14 @@ const zhCN = {
     light: "浅色",
     dark: "深色",
     system: "跟随系统",
+    // Accent Color
+    accentColor: "主题色",
+    accentIndigo: "靛蓝",
+    accentCoral: "珊瑚",
+    accentTeal: "青绿",
+    accentAmber: "琥珀",
+    accentRose: "玫瑰",
+    accentMono: "黑白",
     // Language
     language: "语言",
     // Marketplace Cache
@@ -150,6 +172,45 @@ const zhCN = {
     agentSkillPaths: "Agent 技能路径",
     agentPathsDescription: "各 Agent 的默认技能目录。",
     revealInFinder: "在 Finder 中显示",
+    about: "关于",
+  },
+
+  // === Repos ===
+  repos: {
+    importRepo: "从 Git 导入",
+    importLocal: "从本地导入",
+    importDescription: "添加 Git 仓库 URL，浏览并安装其中的技能。",
+    importLocalDescription: "选择包含技能的本地目录，注册为技能来源。",
+    cancel: "取消",
+    add: "添加",
+    cloning: "正在克隆仓库...",
+    scanning: "正在扫描技能...",
+    savingConfig: "正在保存配置...",
+    fetching: "正在拉取更新...",
+    merging: "正在合并变更...",
+    skillRepos: "技能来源",
+    reposDescription: "已注册的 Git 仓库和本地目录技能来源。",
+    sync: "同步",
+    remove: "移除",
+    skillCountLabel: "{{count}} 个技能",
+    lastSynced: "同步: {{time}}",
+    noRepos: "尚未添加技能来源。",
+    selectSkills: "选择技能",
+    skillsFound: "发现 {{count}} 个技能",
+    selectAll: "全选",
+    deselectAll: "取消全选",
+    next: "下一步 ({{count}})",
+    back: "上一步",
+    selectAgents: "选择 Agent",
+    selectFolder: "选择文件夹",
+    installCount: "安装 ({{count}})",
+    installingProgress: "正在安装 {{done}} / {{total}}...",
+    installingSkill: "正在安装 {{name}}...",
+    noSkillsFound: "此来源中未找到技能。",
+    noAgentsDetected: "未检测到 Agent。",
+    repoSource: "仓库: {{name}}",
+    localSource: "本地",
+    gitSource: "Git",
   },
 } as const;
 

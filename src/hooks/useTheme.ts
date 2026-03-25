@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface AppSettings {
   theme: string | null;
@@ -26,6 +27,11 @@ export function useTheme() {
 
     function apply(dark: boolean) {
       root.classList.toggle("dark", dark);
+      // Sync native title bar color with sidebar background
+      const bg = dark
+        ? { red: 43, green: 43, blue: 43, alpha: 255 }    // oklch(0.205 0 0) ≈ #2b2b2b
+        : { red: 250, green: 250, blue: 250, alpha: 255 }; // oklch(0.985 0 0) ≈ #fafafa
+      getCurrentWindow().setBackgroundColor(bg).catch(() => {});
     }
 
     if (theme === "dark") {
