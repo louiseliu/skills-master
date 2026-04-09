@@ -40,20 +40,21 @@ const AGENT_ICONS: Record<string, IconComponent> = {
 };
 
 // Static SVG fallback icons (img src)
-const AGENT_FALLBACK_ICONS: Record<string, string> = {
-  "factory": factorySvg,
-  "kiro": kiroSvg,
-  "warp": warpSvg,
-  "qoder": qoderSvg,
-  "codebuddy": codebuddySvg,
+// monochrome: true means the icon is single-color black and needs dark:invert
+const AGENT_FALLBACK_ICONS: Record<string, { src: string; monochrome?: boolean }> = {
+  "factory": { src: factorySvg, monochrome: true },
+  "kiro": { src: kiroSvg },
+  "warp": { src: warpSvg, monochrome: true },
+  "qoder": { src: qoderSvg },
+  "codebuddy": { src: codebuddySvg },
 };
 
-export function getAgentIcon(slug: string): { type: "component"; Component: IconComponent } | { type: "img"; src: string } {
+export function getAgentIcon(slug: string): { type: "component"; Component: IconComponent } | { type: "img"; src: string; monochrome?: boolean } {
   const component = AGENT_ICONS[slug];
   if (component) return { type: "component", Component: component };
 
   const fallback = AGENT_FALLBACK_ICONS[slug];
-  if (fallback) return { type: "img", src: fallback };
+  if (fallback) return { type: "img", ...fallback };
 
   return { type: "img", src: defaultSvg };
 }

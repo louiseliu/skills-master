@@ -580,7 +580,7 @@ const AgentCheckItem = memo(function AgentCheckItem({
       {icon.type === "component" ? (
         <icon.Component className="size-4 rounded-[3px]" />
       ) : (
-        <img src={icon.src} alt="" className="size-4 rounded-[3px]" />
+        <img src={icon.src} alt="" className={`size-4 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />
       )}
       <span className="text-sm font-medium">{agent.name}</span>
     </label>

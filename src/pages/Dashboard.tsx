@@ -210,7 +210,7 @@ export default function Dashboard() {
                       const icon = getAgentIcon(agent.slug);
                       return icon.type === "component"
                         ? <icon.Component className="size-6 rounded-[3px]" aria-hidden="true" />
-                        : <img src={icon.src} alt="" className="size-6 rounded-[3px]" />;
+                        : <img src={icon.src} alt="" className={`size-6 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
                     })()}
                   </div>
                   <div className="flex-1 min-w-0 relative z-[3]">

@@ -298,8 +298,7 @@ fn copy_dir_recursive(source: &Path, target: &Path) -> Result<(), std::io::Error
 
 fn copy_dir_impl(source: &Path, target: &Path, depth: u32) -> Result<(), std::io::Error> {
     if depth > COPY_MAX_DEPTH {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        return Err(std::io::Error::other(
             format!("copy_dir_recursive: max depth ({COPY_MAX_DEPTH}) exceeded — possible symlink cycle"),
         ));
     }

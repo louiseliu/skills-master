@@ -28,7 +28,7 @@ const AgentIcon = memo(function AgentIcon({ slug }: { slug: string }) {
   const icon = getAgentIcon(slug);
   return icon.type === "component"
     ? <icon.Component className="size-4 rounded-[3px]" aria-hidden="true" />
-    : <img src={icon.src} alt="" className="size-4 rounded-[3px]" />;
+    : <img src={icon.src} alt="" className={`size-4 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
 });
 
 const isMac = navigator.platform.toLowerCase().includes("mac");
