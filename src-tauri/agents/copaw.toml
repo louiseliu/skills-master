@@ -1,0 +1,14 @@
+slug = "copaw"
+name = "CoPaw"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.copaw/skills"]
+skill_format = "skill-md"
+cli_command = "copaw"
+install_command = "npm install -g copaw"
+install_docs_url = "https://docs.openclaw.ai/start/getting-started"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

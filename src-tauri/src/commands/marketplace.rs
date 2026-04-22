@@ -3,6 +3,9 @@ use std::path::PathBuf;
 
 use crate::installer::install::install_skill_from_path;
 use crate::marketplace::clawhub::fetch_clawhub as fetch_clawhub_impl;
+use crate::marketplace::skillhub::{
+    fetch_skillhub as fetch_skillhub_impl, search_skillhub,
+};
 use crate::marketplace::skillssh::{fetch_skillssh as fetch_skillssh_impl, search_skillssh};
 use crate::marketplace::MarketplaceSkill;
 use crate::paths;
@@ -36,6 +39,15 @@ pub async fn fetch_clawhub(
 }
 
 #[tauri::command]
+pub async fn fetch_skillhub(section: String) -> Result<Vec<MarketplaceSkill>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        fetch_skillhub_impl(&section).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))?
+}
+
+#[tauri::command]
 pub async fn search_marketplace(query: String, source: String) -> Result<Vec<MarketplaceSkill>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         match source.as_str() {
@@ -43,6 +55,7 @@ pub async fn search_marketplace(query: String, source: String) -> Result<Vec<Mar
             "clawhub" => {
                 crate::marketplace::clawhub::search_clawhub(&query).map_err(|e| e.to_string())
             }
+            "skillhub" => search_skillhub(&query).map_err(|e| e.to_string()),
             _ => Ok(Vec::new()),
         }
     })

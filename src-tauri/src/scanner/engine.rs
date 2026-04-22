@@ -337,6 +337,7 @@ fn resolve_source(
         match src {
             "skills.sh" => return SkillSource::SkillsSh { repository: repo },
             "clawhub" => return SkillSource::ClawHub { repository: repo },
+            "skillhub" => return SkillSource::SkillHub { repository: repo },
             "git" => {
                 return SkillSource::GitRepository {
                     repo_url: repo.unwrap_or_default(),

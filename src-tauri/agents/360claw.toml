@@ -1,0 +1,14 @@
+slug = "360claw"
+name = "360Claw"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.360claw/skills"]
+skill_format = "skill-md"
+cli_command = "360claw"
+install_command = "npm install -g 360claw"
+install_docs_url = "https://claw.360.cn/"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

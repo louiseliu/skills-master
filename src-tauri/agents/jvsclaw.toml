@@ -1,0 +1,14 @@
+slug = "jvsclaw"
+name = "JvsClaw"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.jvsclaw/skills"]
+skill_format = "skill-md"
+cli_command = "jvsclaw"
+install_command = "npm install -g jvsclaw"
+install_docs_url = "https://docs.openclaw.ai/start/getting-started"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

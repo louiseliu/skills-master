@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,15 +9,20 @@ import {
   RefreshCw,
   Copy,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { getAgentIcon } from "@/lib/agentIcons";
-import { useAgents } from "@/hooks/useAgents";
+import { useAgents, type AgentConfig } from "@/hooks/useAgents";
 import { useSkills, installedAgents } from "@/hooks/useSkills";
 import LiquidGlass from "@/components/LiquidGlass";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
 import { cn, nativeSelectClass } from "@/lib/utils";
 import { openUrl } from "@tauri-apps/plugin-opener";
+
+type GroupedItem =
+  | { kind: "agent"; agent: AgentConfig }
+  | { kind: "group"; groupKey: string; agents: AgentConfig[] };
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -85,6 +90,48 @@ export default function Dashboard() {
         return a.name.localeCompare(b.name);
       });
   }, [agents, searchTerm, statusFilter, sortBy, skillCountByAgent]);
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = useCallback((key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const groupedItems = useMemo<GroupedItem[]>(() => {
+    const items: GroupedItem[] = [];
+    const groupBuckets = new Map<string, AgentConfig[]>();
+
+    for (const agent of filteredAgents) {
+      if (agent.group) {
+        let bucket = groupBuckets.get(agent.group);
+        if (!bucket) {
+          bucket = [];
+          groupBuckets.set(agent.group, bucket);
+        }
+        bucket.push(agent);
+      } else {
+        items.push({ kind: "agent", agent });
+      }
+    }
+
+    const groupItems: GroupedItem[] = [];
+    for (const [groupKey, groupAgents] of groupBuckets) {
+      groupItems.push({ kind: "group", groupKey, agents: groupAgents });
+    }
+    groupItems.sort((a, b) => {
+      if (a.kind !== "group" || b.kind !== "group") return 0;
+      const aDetected = a.agents.filter((ag) => ag.detected).length;
+      const bDetected = b.agents.filter((ag) => ag.detected).length;
+      if (aDetected !== bDetected) return bDetected - aDetected;
+      return a.groupKey.localeCompare(b.groupKey);
+    });
+
+    return [...groupItems, ...items];
+  }, [filteredAgents]);
 
   const selectedGuide = useMemo(
     () => (agents ?? []).find((agent) => agent.slug === guideAgent) ?? null,
@@ -179,75 +226,87 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        ) : filteredAgents.length === 0 ? (
+        ) : groupedItems.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             {t("dashboard.noAgentsMatch")}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {filteredAgents.map((agent) => {
-              const agentSkillCount = skillCountByAgent.get(agent.slug) ?? 0;
+            {groupedItems.map((item) => {
+              if (item.kind === "group") {
+                const { groupKey, agents: groupAgents } = item;
+                const detectedCount = groupAgents.filter((a) => a.detected).length;
+                const isExpanded = expandedGroups.has(groupKey);
+                const representativeSlug = groupAgents.find((a) => a.slug === "openclaw")?.slug
+                  ?? groupAgents.find((a) => a.detected)?.slug
+                  ?? groupAgents[0]?.slug
+                  ?? groupKey;
+                const groupSkillCount = groupAgents.reduce(
+                  (sum, a) => sum + (skillCountByAgent.get(a.slug) ?? 0),
+                  0,
+                );
+
+                return (
+                  <div key={`group-${groupKey}`} className="col-span-full">
+                    <LiquidGlass
+                      className="group flex items-center gap-3 rounded-2xl p-4 text-left glass-hover cursor-pointer"
+                      onClick={() => toggleGroup(groupKey)}
+                    >
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        {(() => {
+                          const icon = getAgentIcon(representativeSlug);
+                          return icon.type === "component"
+                            ? <icon.Component className="size-6 rounded-[3px]" aria-hidden="true" />
+                            : <img src={icon.src} alt="" className={`size-6 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
+                        })()}
+                      </div>
+                      <div className="flex-1 min-w-0 relative z-[3]">
+                        <span className="text-sm font-semibold capitalize">
+                          {groupKey}
+                        </span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t("dashboard.groupTotal", { count: groupAgents.length })}
+                          {" · "}
+                          {t("dashboard.groupDetected", { detected: detectedCount })}
+                          {groupSkillCount > 0 && (
+                            <> · {t("dashboard.skillCount", { count: groupSkillCount })}</>
+                          )}
+                        </p>
+                      </div>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 text-muted-foreground shrink-0 transition-transform duration-200 relative z-[3]",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
+                    </LiquidGlass>
+                    {isExpanded && (
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 mt-2 ml-4 animate-fade-in-up">
+                        {groupAgents.map((agent) => (
+                          <AgentCard
+                            key={agent.slug}
+                            agent={agent}
+                            skillCount={skillCountByAgent.get(agent.slug) ?? 0}
+                            onNavigate={() => navigate("/skills?agent=" + agent.slug)}
+                            onGuide={() => setGuideAgent(agent.slug)}
+                            t={t}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               return (
-                <LiquidGlass
-                  key={agent.slug}
-                  className="group flex items-center gap-3 rounded-2xl p-4 text-left glass-hover cursor-pointer"
-                  onClick={() => {
-                    if (agent.detected) {
-                      navigate("/skills?agent=" + agent.slug);
-                    } else {
-                      setGuideAgent(agent.slug);
-                    }
-                  }}
-                >
-                  <div
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted",
-                      !agent.detected && "grayscale opacity-50"
-                    )}
-                  >
-                    {(() => {
-                      const icon = getAgentIcon(agent.slug);
-                      return icon.type === "component"
-                        ? <icon.Component className="size-6 rounded-[3px]" aria-hidden="true" />
-                        : <img src={icon.src} alt="" className={`size-6 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
-                    })()}
-                  </div>
-                  <div className="flex-1 min-w-0 relative z-[3]">
-                    <span className="text-sm font-medium truncate">
-                      {agent.name}
-                    </span>
-                    {agent.detected ? (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t("dashboard.skillCount", { count: agentSkillCount })}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-1">{t("dashboard.notInstalled")}</p>
-                    )}
-                  </div>
-                  <div className="relative z-[3]">
-                    {agent.detected ? (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); navigate("/skills?agent=" + agent.slug); }}
-                        title={`Open ${agent.name} skills`}
-                      >
-                        <ArrowRight className="size-4 text-muted-foreground" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        className="shrink-0"
-                        onClick={(e) => { e.stopPropagation(); setGuideAgent(agent.slug); }}
-                      >
-                        {t("dashboard.installationGuide")}
-                      </Button>
-                    )}
-                  </div>
-                </LiquidGlass>
+                <AgentCard
+                  key={item.agent.slug}
+                  agent={item.agent}
+                  skillCount={skillCountByAgent.get(item.agent.slug) ?? 0}
+                  onNavigate={() => navigate("/skills?agent=" + item.agent.slug)}
+                  onGuide={() => setGuideAgent(item.agent.slug)}
+                  t={t}
+                />
               );
             })}
           </div>
@@ -492,6 +551,76 @@ function InstallGuideModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function AgentCard({
+  agent,
+  skillCount,
+  onNavigate,
+  onGuide,
+  t,
+}: {
+  agent: AgentConfig;
+  skillCount: number;
+  onNavigate: () => void;
+  onGuide: () => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <LiquidGlass
+      className="group flex items-center gap-3 rounded-2xl p-4 text-left glass-hover cursor-pointer"
+      onClick={() => {
+        if (agent.detected) onNavigate();
+        else onGuide();
+      }}
+    >
+      <div
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted",
+          !agent.detected && "grayscale opacity-50",
+        )}
+      >
+        {(() => {
+          const icon = getAgentIcon(agent.slug);
+          return icon.type === "component"
+            ? <icon.Component className="size-6 rounded-[3px]" aria-hidden="true" />
+            : <img src={icon.src} alt="" className={`size-6 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
+        })()}
+      </div>
+      <div className="flex-1 min-w-0 relative z-[3]">
+        <span className="text-sm font-medium truncate">{agent.name}</span>
+        {agent.detected ? (
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("dashboard.skillCount", { count: skillCount })}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-1">{t("dashboard.notInstalled")}</p>
+        )}
+      </div>
+      <div className="relative z-[3]">
+        {agent.detected ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+            title={`${agent.name}`}
+          >
+            <ArrowRight className="size-4 text-muted-foreground" />
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="xs"
+            className="shrink-0"
+            onClick={(e) => { e.stopPropagation(); onGuide(); }}
+          >
+            {t("dashboard.installationGuide")}
+          </Button>
+        )}
+      </div>
+    </LiquidGlass>
   );
 }
 

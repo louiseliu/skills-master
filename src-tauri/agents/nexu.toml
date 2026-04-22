@@ -1,0 +1,14 @@
+slug = "nexu"
+name = "Nexu"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.nexu/skills"]
+skill_format = "skill-md"
+cli_command = "nexu"
+install_command = "npm install -g nexu"
+install_docs_url = "https://docs.openclaw.ai/start/getting-started"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

@@ -1,0 +1,14 @@
+slug = "manus"
+name = "Manus"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.manus/skills"]
+skill_format = "skill-md"
+cli_command = "manus"
+install_command = "npm install -g manus"
+install_docs_url = "https://manus.im"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

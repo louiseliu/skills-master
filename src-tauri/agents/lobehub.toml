@@ -1,0 +1,14 @@
+slug = "lobehub"
+name = "LobeHub"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.lobehub/skills"]
+skill_format = "skill-md"
+cli_command = "lobehub"
+install_command = "npm install -g lobehub"
+install_docs_url = "https://lobehub.com"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

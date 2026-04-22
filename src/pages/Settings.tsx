@@ -317,7 +317,7 @@ export default function SettingsPage() {
           {t("settings.about")}
         </h2>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">AgentSkills</span>
+          <span className="font-medium text-foreground">技能管家</span>
           {appVersion && (
             <span className="rounded-full glass-badge px-2 py-0.5 text-[10px] font-medium tabular-nums">
               v{appVersion}
@@ -326,10 +326,10 @@ export default function SettingsPage() {
         </div>
         <button
           className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer"
-          onClick={() => openUrl("https://github.com/chrlsio/agent-skills")}
+          onClick={() => openUrl("https://github.com/louiseliu/skills-master")}
         >
           <GitBranch className="size-3" />
-          github.com/chrlsio/agent-skills
+          github.com/louiseliu/skills-master
           <ExternalLink className="size-3" />
         </button>
       </section>

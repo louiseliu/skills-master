@@ -1,14 +1,14 @@
 [package]
-name = "agent-skills"
-version = "0.1.8"
-description = "A desktop app for managing AI agent skills across multiple agents"
-authors = ["AgentSkills Contributors"]
+name = "skills-master"
+version = "0.9.0"
+description = "技能管家 — 跨平台桌面应用，统一管理 36 款 AI Agent 的技能"
+authors = ["五柳大叔"]
 license = "MIT"
-repository = "https://github.com/chrlsio/agent-skills"
+repository = "https://github.com/louiseliu/skills-master"
 edition = "2021"
 
 [lib]
-name = "agent_skills_lib"
+name = "skills_master_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

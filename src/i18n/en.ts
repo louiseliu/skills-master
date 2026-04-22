@@ -56,6 +56,9 @@ const en = {
     sourceOfficialMarketplace: "Official Marketplace",
     sourceHomebrewCask: "Homebrew Cask",
     sourceUnspecified: "Unspecified",
+    // Agent groups
+    groupDetected: "{{detected}} detected",
+    groupTotal: "{{count}} clients",
   },
 
   // === Skills Manager ===
@@ -79,6 +82,7 @@ const en = {
     sourceGit: "Git",
     sourceSkillsSh: "skills.sh",
     sourceClawHub: "ClawHub",
+    sourceSkillHub: "SkillHub",
     sourceUnknown: "Unknown",
     // Metadata
     skillMetadata: "Skill Metadata",
@@ -141,6 +145,7 @@ const en = {
     actions: "Actions",
     viewRepository: "View Repository",
     viewOnSkillsSh: "View on skills.sh",
+    viewOnSkillHub: "View on SkillHub",
     // Skill Content
     skillContent: "Skill Content",
     couldNotLoad: "Could not load content from repository",

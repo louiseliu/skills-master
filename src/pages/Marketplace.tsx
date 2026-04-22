@@ -37,6 +37,7 @@ interface MarketplaceSkill {
 const SOURCES = [
   { key: "skills.sh", label: "skills.sh" },
   { key: "clawhub", label: "ClawHub" },
+  { key: "skillhub", label: "SkillHub" },
 ];
 
 export default function Marketplace() {
@@ -45,6 +46,7 @@ export default function Marketplace() {
   const [source, setSource] = useState("skills.sh");
   const [skillsshSort, setSkillsshSort] = useState("all-time");
   const [clawhubSort, setClawhubSort] = useState("default");
+  const [skillhubSort, setSkillhubSort] = useState("hot");
   const [searchQuery, setSearchQuery] = useState("");
   const [busyAgents, setBusyAgents] = useState<Map<string, BusyOp>>(new Map());
   // selectedKey drives list highlight (instant); detail uses deferred key
@@ -72,15 +74,19 @@ export default function Marketplace() {
     { key: "stars", label: t("marketplace.sortStars") },
   ], [t]);
 
+  const SKILLHUB_SORTS = useMemo(() => [
+    { key: "hot", label: t("marketplace.sortHot") },
+  ], [t]);
+
   // SearchInput fires debounced changes; we store the query for React Query
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
   }, []);
 
   const detectedAgents = agents?.filter((a) => a.detected) ?? [];
-  const currentSort = source === "skills.sh" ? skillsshSort : clawhubSort;
-  const sorts = source === "skills.sh" ? SKILLSSH_SORTS : CLAWHUB_SORTS;
-  const setSort = source === "skills.sh" ? setSkillsshSort : setClawhubSort;
+  const currentSort = source === "skills.sh" ? skillsshSort : source === "clawhub" ? clawhubSort : skillhubSort;
+  const sorts = source === "skills.sh" ? SKILLSSH_SORTS : source === "clawhub" ? CLAWHUB_SORTS : SKILLHUB_SORTS;
+  const setSort = source === "skills.sh" ? setSkillsshSort : source === "clawhub" ? setClawhubSort : setSkillhubSort;
   const deferredSelectedKey = useDeferredValue(selectedKey);
 
   const {
@@ -98,6 +104,9 @@ export default function Marketplace() {
       }
       if (source === "skills.sh") {
         return invoke("fetch_skillssh", { sort: currentSort, page: 1 });
+      }
+      if (source === "skillhub") {
+        return invoke("fetch_skillhub", { section: currentSort });
       }
       return invoke("fetch_clawhub", {
         endpoint: currentSort,
@@ -241,7 +250,7 @@ export default function Marketplace() {
         <SearchInput
           value={searchQuery}
           onChange={handleSearchChange}
-          placeholder={t("marketplace.searchPlaceholder", { source: source === "skills.sh" ? "skills.sh" : "ClawHub" })}
+          placeholder={t("marketplace.searchPlaceholder", { source: source === "skills.sh" ? "skills.sh" : source === "clawhub" ? "ClawHub" : "SkillHub" })}
           debounce={350}
         />
 
@@ -569,6 +578,17 @@ function MarketplaceSkillDetail({
                 {t("marketplace.viewOnSkillsSh")}
               </Button>
             )}
+            {skill.source === "skillhub" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => openUrl("https://skillhub.cn")}
+              >
+                <Tag className="size-3.5" />
+                {t("marketplace.viewOnSkillHub")}
+              </Button>
+            )}
           </div>
         </InfoSection>
 
@@ -675,6 +695,10 @@ function sourceRepository(source: unknown): string | null {
   if ("ClawHub" in src) {
     const clawHub = src["ClawHub"] as Record<string, unknown>;
     return typeof clawHub.repository === "string" ? clawHub.repository : null;
+  }
+  if ("SkillHub" in src) {
+    const skillHub = src["SkillHub"] as Record<string, unknown>;
+    return typeof skillHub.repository === "string" ? skillHub.repository : null;
   }
   return null;
 }

@@ -34,18 +34,18 @@ PY
 APP_VERSION="$(extract_first '.*"version"\s*:\s*"([^"]+)".*' "src-tauri/tauri.conf.json")"
 CARGO_VERSION="$(extract_first '^\s*version\s*=\s*"([^"]+)".*' "src-tauri/Cargo.toml")"
 PACKAGE_VERSION="$(extract_first '.*"version"\s*:\s*"([^"]+)".*' "package.json")"
-CASK_VERSION="$(extract_first '^\s*version\s*"([^"]+)".*' "Casks/agentskills.rb")"
+CASK_VERSION="$(extract_first '^\s*version\s*"([^"]+)".*' "Casks/skillsmaster.rb")"
 
 [[ "$APP_VERSION" == "$CARGO_VERSION" ]] || die "Version mismatch: tauri.conf.json=$APP_VERSION, Cargo.toml=$CARGO_VERSION"
 [[ "$APP_VERSION" == "$PACKAGE_VERSION" ]] || die "Version mismatch: tauri.conf.json=$APP_VERSION, package.json=$PACKAGE_VERSION"
-[[ "$APP_VERSION" == "$CASK_VERSION" ]] || die "Version mismatch: tauri.conf.json=$APP_VERSION, Casks/agentskills.rb=$CASK_VERSION"
+[[ "$APP_VERSION" == "$CASK_VERSION" ]] || die "Version mismatch: tauri.conf.json=$APP_VERSION, Casks/skillsmaster.rb=$CASK_VERSION"
 
 APP_TAG="v${APP_VERSION}"
 
-README_EN_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/chrlsio/agent-skills/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.md")"
-README_EN_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/chrlsio/agent-skills/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.md")"
-README_ZH_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/chrlsio/agent-skills/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.zh-CN.md")"
-README_ZH_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/chrlsio/agent-skills/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.zh-CN.md")"
+README_EN_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.md")"
+README_EN_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.md")"
+README_ZH_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.zh-CN.md")"
+README_ZH_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.zh-CN.md")"
 
 [[ "$README_EN_SH_TAG" == "$APP_TAG" ]] || die "README.md install.sh tag mismatch: expected $APP_TAG, got $README_EN_SH_TAG"
 [[ "$README_EN_PS_TAG" == "$APP_TAG" ]] || die "README.md install.ps1 tag mismatch: expected $APP_TAG, got $README_EN_PS_TAG"

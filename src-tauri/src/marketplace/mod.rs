@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod clawhub;
+pub mod skillhub;
 pub mod skillssh;
 
 use serde::{Deserialize, Serialize};

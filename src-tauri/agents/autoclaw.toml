@@ -1,0 +1,14 @@
+slug = "autoclaw"
+name = "AutoClaw"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.openclaw-autoclaw/skills"]
+skill_format = "skill-md"
+cli_command = "autoclaw"
+install_command = "npm install -g autoclaw"
+install_docs_url = "https://autoclaws.org/zh/one-click-install/"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

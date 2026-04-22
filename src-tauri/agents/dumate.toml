@@ -1,0 +1,14 @@
+slug = "dumate"
+name = "DuMate"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.dumate/skills"]
+skill_format = "skill-md"
+cli_command = "dumate"
+install_command = "npm install -g dumate"
+install_docs_url = "https://cloud.baidu.com/product/dumate.html"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

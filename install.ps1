@@ -1,5 +1,5 @@
-# AgentSkills install script for Windows
-# Usage: irm https://raw.githubusercontent.com/chrlsio/agent-skills/main/install.ps1 | iex
+# SkillsMaster install script for Windows
+# Usage: irm https://raw.githubusercontent.com/louiseliu/skills-master/main/install.ps1 | iex
 #
 # Optional variables (set before running):
 #   $Version = "0.1.8"   # Install specific version
@@ -10,8 +10,8 @@ if (-not $DryRun) { $DryRun = $false }
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "chrlsio/agent-skills"
-$AppName = "AgentSkills"
+$Repo = "louiseliu/skills-master"
+$AppName = "SkillsMaster"
 $GithubApi = "https://api.github.com/repos/$Repo/releases"
 $script:ReleaseVersion = ""
 $script:DownloadUrl = ""
@@ -52,7 +52,7 @@ function Get-ReleaseVersion {
 
   try {
     $release = Invoke-RestMethod -Uri "$GithubApi/latest" -Headers @{
-      "User-Agent" = "agentskills-installer"
+      "User-Agent" = "skillsmaster-installer"
       "Accept"     = "application/vnd.github+json"
     } -TimeoutSec 10
     $script:ReleaseVersion = Normalize-Version $release.tag_name
@@ -82,10 +82,10 @@ function Get-ReleaseVersion {
 function Build-FallbackAssets {
   $base = "https://github.com/$Repo/releases/download/v$($script:ReleaseVersion)"
   return @(
-    @{ name = "AgentSkills_$($script:ReleaseVersion)_x64-setup.exe"; url = "$base/AgentSkills_$($script:ReleaseVersion)_x64-setup.exe" },
-    @{ name = "AgentSkills_$($script:ReleaseVersion)_x64_en-US.msi"; url = "$base/AgentSkills_$($script:ReleaseVersion)_x64_en-US.msi" },
-    @{ name = "AgentSkills_$($script:ReleaseVersion)_arm64-setup.exe"; url = "$base/AgentSkills_$($script:ReleaseVersion)_arm64-setup.exe" },
-    @{ name = "AgentSkills_$($script:ReleaseVersion)_arm64_en-US.msi"; url = "$base/AgentSkills_$($script:ReleaseVersion)_arm64_en-US.msi" }
+    @{ name = "SkillsMaster_$($script:ReleaseVersion)_x64-setup.exe"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_x64-setup.exe" },
+    @{ name = "SkillsMaster_$($script:ReleaseVersion)_x64_en-US.msi"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_x64_en-US.msi" },
+    @{ name = "SkillsMaster_$($script:ReleaseVersion)_arm64-setup.exe"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_arm64-setup.exe" },
+    @{ name = "SkillsMaster_$($script:ReleaseVersion)_arm64_en-US.msi"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_arm64_en-US.msi" }
   )
 }
 
@@ -95,7 +95,7 @@ function Get-Assets {
   try {
     Info "Fetching release metadata for v$($script:ReleaseVersion)..."
     $release = Invoke-RestMethod -Uri $tagApi -Headers @{
-      "User-Agent" = "agentskills-installer"
+      "User-Agent" = "skillsmaster-installer"
       "Accept"     = "application/vnd.github+json"
     } -TimeoutSec 10
 

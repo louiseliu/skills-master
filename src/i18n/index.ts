@@ -8,8 +8,8 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
     "zh-CN": { translation: zhCN },
   },
-  lng: "en", // 默认语言，将在 App 启动时被覆盖
-  fallbackLng: "en",
+  lng: "zh-CN",
+  fallbackLng: "zh-CN",
   interpolation: {
     escapeValue: false, // React 已做 XSS 转义
   },

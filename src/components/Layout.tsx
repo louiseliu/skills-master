@@ -112,7 +112,7 @@ export default function Layout() {
           <div className="flex items-center gap-2.5">
             <img src={logoUrl} alt="" width={30} height={30} className="size-[30px] rounded-[8px] shadow-sm ring-1 ring-black/5" />
             <span className="text-[15px] font-semibold text-sidebar-foreground tracking-tight select-none">
-              AgentSkills
+              技能管家
             </span>
           </div>
         </div>

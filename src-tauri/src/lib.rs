@@ -23,8 +23,8 @@ pub fn run() {
             paths::init(app.handle());
             watcher::start_skill_watcher(app.handle().clone());
 
-            let show = MenuItemBuilder::with_id("show", "Show AgentSkills").build(app)?;
-            let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+            let show = MenuItemBuilder::with_id("show", "显示技能管家").build(app)?;
+            let quit = MenuItemBuilder::with_id("quit", "退出").build(app)?;
             let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
 
             if let Some(tray) = app.tray_by_id("main-tray") {
@@ -85,6 +85,7 @@ pub fn run() {
             commands::skills::fetch_remote_skill_content,
             commands::marketplace::fetch_skillssh,
             commands::marketplace::fetch_clawhub,
+            commands::marketplace::fetch_skillhub,
             commands::marketplace::search_marketplace,
             commands::marketplace::install_from_marketplace,
             commands::settings::read_settings,

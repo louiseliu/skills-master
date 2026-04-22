@@ -1,0 +1,14 @@
+slug = "wukong"
+name = "Wukong"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.wukong/skills"]
+skill_format = "skill-md"
+cli_command = "wukong"
+install_command = "npm install -g wukong"
+install_docs_url = "https://docs.openclaw.ai/start/getting-started"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

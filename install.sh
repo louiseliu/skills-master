@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# AgentSkills one-line installer (Linux + macOS)
-# Usage: curl -fsSL https://raw.githubusercontent.com/chrlsio/agent-skills/main/install.sh | bash
+# SkillsMaster one-line installer (Linux + macOS)
+# Usage: curl -fsSL https://raw.githubusercontent.com/louiseliu/skills-master/main/install.sh | bash
 #
 # Environment variables:
 #   VERSION     - Install a specific version (e.g. "0.1.8" or "v0.1.8"), default: latest
@@ -14,8 +14,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-REPO="chrlsio/agent-skills"
-APP_NAME="AgentSkills"
+REPO="louiseliu/skills-master"
+APP_NAME="SkillsMaster"
 GITHUB_RELEASES_API="https://api.github.com/repos/${REPO}/releases"
 SCRIPT_VERSION="2.0.0"
 
@@ -76,7 +76,7 @@ build_curl_args() {
   CURL_ARGS=(
     -fsSL
     -H "Accept: application/vnd.github+json"
-    -H "User-Agent: agentskills-installer"
+    -H "User-Agent: skillsmaster-installer"
   )
 }
 
@@ -153,14 +153,14 @@ extract_assets_from_json() {
 build_fallback_assets() {
   local base_url="https://github.com/${REPO}/releases/download/v${RELEASE_VERSION}"
   cat <<EOF
-AgentSkills_${RELEASE_VERSION}_aarch64.dmg	${base_url}/AgentSkills_${RELEASE_VERSION}_aarch64.dmg
-AgentSkills_${RELEASE_VERSION}_x64.dmg	${base_url}/AgentSkills_${RELEASE_VERSION}_x64.dmg
-AgentSkills_${RELEASE_VERSION}_amd64.deb	${base_url}/AgentSkills_${RELEASE_VERSION}_amd64.deb
-AgentSkills_${RELEASE_VERSION}_arm64.deb	${base_url}/AgentSkills_${RELEASE_VERSION}_arm64.deb
-AgentSkills-${RELEASE_VERSION}-1.x86_64.rpm	${base_url}/AgentSkills-${RELEASE_VERSION}-1.x86_64.rpm
-AgentSkills-${RELEASE_VERSION}-1.aarch64.rpm	${base_url}/AgentSkills-${RELEASE_VERSION}-1.aarch64.rpm
-AgentSkills_${RELEASE_VERSION}_amd64.AppImage	${base_url}/AgentSkills_${RELEASE_VERSION}_amd64.AppImage
-AgentSkills_${RELEASE_VERSION}_aarch64.AppImage	${base_url}/AgentSkills_${RELEASE_VERSION}_aarch64.AppImage
+SkillsMaster_${RELEASE_VERSION}_aarch64.dmg	${base_url}/SkillsMaster_${RELEASE_VERSION}_aarch64.dmg
+SkillsMaster_${RELEASE_VERSION}_x64.dmg	${base_url}/SkillsMaster_${RELEASE_VERSION}_x64.dmg
+SkillsMaster_${RELEASE_VERSION}_amd64.deb	${base_url}/SkillsMaster_${RELEASE_VERSION}_amd64.deb
+SkillsMaster_${RELEASE_VERSION}_arm64.deb	${base_url}/SkillsMaster_${RELEASE_VERSION}_arm64.deb
+SkillsMaster-${RELEASE_VERSION}-1.x86_64.rpm	${base_url}/SkillsMaster-${RELEASE_VERSION}-1.x86_64.rpm
+SkillsMaster-${RELEASE_VERSION}-1.aarch64.rpm	${base_url}/SkillsMaster-${RELEASE_VERSION}-1.aarch64.rpm
+SkillsMaster_${RELEASE_VERSION}_amd64.AppImage	${base_url}/SkillsMaster_${RELEASE_VERSION}_amd64.AppImage
+SkillsMaster_${RELEASE_VERSION}_aarch64.AppImage	${base_url}/SkillsMaster_${RELEASE_VERSION}_aarch64.AppImage
 EOF
 }
 
@@ -285,7 +285,7 @@ install_linux() {
       ;;
     *.AppImage)
       local target_dir="${HOME}/.local/bin"
-      local target_path="${target_dir}/agentskills.AppImage"
+      local target_path="${target_dir}/skillsmaster.AppImage"
       run mkdir -p "$target_dir"
       run cp "$DOWNLOAD_PATH" "$target_path"
       run chmod +x "$target_path"

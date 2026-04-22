@@ -53,6 +53,9 @@ pub struct AgentConfig {
     pub install_docs_url: Option<String>,
     #[serde(default)]
     pub install_source_label: Option<String>,
+    /// Optional grouping key for visually collapsing related agents (e.g. "openclaw").
+    #[serde(default)]
+    pub group: Option<String>,
     /// Extra paths to check for agent detection (e.g. `/Applications/Warp.app`).
     #[serde(default)]
     pub detect_paths: Vec<String>,

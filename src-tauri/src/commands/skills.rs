@@ -78,6 +78,12 @@ pub async fn install_skill(source: SkillSource, target_agents: Vec<String>) -> R
                     .map_err(|e| e.to_string())?;
                 Ok(())
             }
+            SkillSource::SkillHub { repository } => {
+                let repo = repository.ok_or_else(|| "repository url is required".to_string())?;
+                install_skill_from_git_with_source(&repo, ".", &target_agents, &agents, "skillhub")
+                    .map_err(|e| e.to_string())?;
+                Ok(())
+            }
             SkillSource::Unknown => Err("unsupported skill source".to_string()),
         }
     })

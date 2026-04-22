@@ -65,7 +65,7 @@ targets = [
         ],
     ),
     (
-        "Casks/agentskills.rb",
+        "Casks/skillsmaster.rb",
         [
             (r'(?m)(^\s*version\s*")[^"]+(")', rf"\g<1>{version}\g<2>"),
         ],
@@ -74,11 +74,11 @@ targets = [
         "README.md",
         [
             (
-                r'(https://raw\.githubusercontent\.com/chrlsio/agent-skills/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.sh)',
+                r'(https://raw\.githubusercontent\.com/louiseliu/skills-master/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.sh)',
                 rf"\g<1>{tag}\g<2>",
             ),
             (
-                r'(https://raw\.githubusercontent\.com/chrlsio/agent-skills/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.ps1)',
+                r'(https://raw\.githubusercontent\.com/louiseliu/skills-master/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.ps1)',
                 rf"\g<1>{tag}\g<2>",
             ),
         ],
@@ -87,11 +87,11 @@ targets = [
         "README.zh-CN.md",
         [
             (
-                r'(https://raw\.githubusercontent\.com/chrlsio/agent-skills/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.sh)',
+                r'(https://raw\.githubusercontent\.com/louiseliu/skills-master/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.sh)',
                 rf"\g<1>{tag}\g<2>",
             ),
             (
-                r'(https://raw\.githubusercontent\.com/chrlsio/agent-skills/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.ps1)',
+                r'(https://raw\.githubusercontent\.com/louiseliu/skills-master/)v[0-9]+\.[0-9]+\.[0-9]+(/install\.ps1)',
                 rf"\g<1>{tag}\g<2>",
             ),
         ],

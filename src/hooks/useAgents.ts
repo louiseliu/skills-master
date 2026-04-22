@@ -12,6 +12,7 @@ export interface AgentConfig {
   install_command_windows: string | null;
   install_docs_url: string | null;
   install_source_label: string | null;
+  group: string | null;
   detected: boolean;
 }
 

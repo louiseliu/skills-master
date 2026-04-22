@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AgentSkills",
-  "version": "0.1.8",
-  "identifier": "com.agentskills.app",
+  "productName": "SkillsMaster",
+  "version": "0.9.0",
+  "identifier": "com.skillsmaster.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "AgentSkills",
+        "title": "技能管家",
         "width": 1440,
         "height": 900,
         "minWidth": 900,
@@ -31,7 +31,7 @@
       "id": "main-tray",
       "iconPath": "icons/icon-rounded.png",
       "iconAsTemplate": false,
-      "tooltip": "AgentSkills"
+      "tooltip": "技能管家"
     }
   },
   "bundle": {

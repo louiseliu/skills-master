@@ -7,6 +7,7 @@ pub enum SkillSource {
     GitRepository { repo_url: String, skill_path: Option<String> },
     SkillsSh { repository: Option<String> },
     ClawHub { repository: Option<String> },
+    SkillHub { repository: Option<String> },
     Unknown,
 }
 

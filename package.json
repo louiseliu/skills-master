@@ -1,12 +1,12 @@
 {
-  "name": "agent-skills",
-  "version": "0.1.8",
-  "description": "A desktop app for managing AI agent skills across Claude Code, Cursor, Copilot, Gemini CLI, and more",
+  "name": "skills-master",
+  "version": "0.9.0",
+  "description": "技能管家 — 跨平台桌面应用，统一管理 36 款 AI Agent 的技能",
   "license": "MIT",
-  "author": "AgentSkills Contributors",
+  "author": "五柳大叔",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chrlsio/agent-skills"
+    "url": "https://github.com/louiseliu/skills-master"
   },
   "type": "module",
   "scripts": {

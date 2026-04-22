@@ -1,0 +1,14 @@
+slug = "lobsterai"
+name = "LobsterAI"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.lobsterai/skills"]
+skill_format = "skill-md"
+cli_command = "lobsterai"
+install_command = "npm install -g lobsterai"
+install_docs_url = "https://lobsterai.youdao.com/"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

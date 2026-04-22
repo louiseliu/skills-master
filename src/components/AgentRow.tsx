@@ -34,7 +34,7 @@ export const AgentRow = memo(function AgentRow({
   onUninstall,
   onInstall,
   uninstallTitle,
-  installLabel = "Install",
+  installLabel = "安装",
   installTitle,
   revealTitle,
   disabled,

@@ -1,0 +1,14 @@
+slug = "workbuddy"
+name = "WorkBuddy"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.workbuddy/skills"]
+skill_format = "skill-md"
+cli_command = "workbuddy"
+install_command = "npm install -g workbuddy"
+install_docs_url = "https://www.codebuddy.cn/work/"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

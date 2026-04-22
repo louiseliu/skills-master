@@ -1,0 +1,14 @@
+slug = "qclaw"
+name = "QClaw"
+enabled = true
+group = "龙虾"
+global_paths = ["~/.qclaw/skills"]
+skill_format = "skill-md"
+cli_command = "qclaw"
+install_command = "npm install -g quantumclaw"
+install_docs_url = "https://qclaw.run/en/"
+install_source_label = "official-readme"
+
+[[additional_readable_paths]]
+path = "~/.openclaw/skills"
+source_agent = "openclaw"

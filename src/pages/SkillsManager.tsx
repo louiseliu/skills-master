@@ -661,7 +661,7 @@ const CollectionItem = memo(function CollectionItem({
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium truncate">{parent.name}</h3>
             <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              {childCount} skills
+              {childCount} 个技能
             </span>
             <button
               type="button"

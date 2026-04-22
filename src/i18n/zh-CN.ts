@@ -8,7 +8,7 @@ const zhCN = {
   sidebar: {
     dashboard: "仪表盘",
     skills: "全部技能",
-    agents: "Agents",
+    agents: "智能体",
     marketplace: "市场",
     settings: "设置",
   },
@@ -56,6 +56,9 @@ const zhCN = {
     sourceOfficialMarketplace: "官方市场",
     sourceHomebrewCask: "Homebrew Cask",
     sourceUnspecified: "未指定",
+    // Agent groups
+    groupDetected: "{{detected}} 个已检测",
+    groupTotal: "{{count}} 个客户端",
   },
 
   // === Skills Manager ===
@@ -79,6 +82,7 @@ const zhCN = {
     sourceGit: "Git",
     sourceSkillsSh: "skills.sh",
     sourceClawHub: "ClawHub",
+    sourceSkillHub: "SkillHub",
     sourceUnknown: "未知",
     // Metadata
     skillMetadata: "技能元数据",
@@ -141,6 +145,7 @@ const zhCN = {
     actions: "操作",
     viewRepository: "查看仓库",
     viewOnSkillsSh: "在 skills.sh 上查看",
+    viewOnSkillHub: "在 SkillHub 上查看",
     // Skill Content
     skillContent: "技能内容",
     couldNotLoad: "无法从仓库加载内容",
