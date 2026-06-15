@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Custom Info.plist fragment — Tauri merges these keys into the
+  auto-generated Contents/Info.plist at bundle time.
+
+  We intentionally override ONLY the user-facing display names so the
+  app appears as "技能管家" in the Dock, Finder, Launchpad, Spotlight,
+  Mission Control, Cmd-Tab switcher and the system menu bar.
+
+  The physical bundle name remains "SkillsMaster.app" (driven by
+  tauri.conf.json > productName), which keeps the Homebrew Cask,
+  install.sh/install.ps1 download URLs and the release.yml artifact
+  paths working without any changes.
+
+  Do NOT add CFBundleIdentifier / CFBundleVersion / CFBundleExecutable
+  / CFBundlePackageType here — Tauri generates those and overrides
+  would break codesigning / auto-update.
+-->
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>技能管家</string>
+  <key>CFBundleDisplayName</key>
+  <string>技能管家</string>
+</dict>
+</plist>
