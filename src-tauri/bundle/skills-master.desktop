@@ -1,0 +1,17 @@
+[Desktop Entry]
+Categories=Utility;Development;Office;
+Exec={{exec}} %U
+Icon={{icon}}
+Name=技能管家
+Name[zh_CN]=技能管家
+Name[zh_TW]=技能管家
+Name[zh_HK]=技能管家
+Name[en]=SkillsMaster
+Name[en_US]=SkillsMaster
+Comment=技能管家 — 跨平台桌面应用，统一管理 36 款 AI Agent 的技能
+Comment[en]=SkillsMaster — Unified desktop manager for 36 AI Agents' skills
+Terminal=false
+Type=Application
+StartupWMClass={{exec}}
+StartupNotify=true
+Keywords=AI;Agent;Skills;Claude;Cursor;

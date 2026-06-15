@@ -46,6 +46,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "bundle/skills-master.desktop"
+      }
+    },
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "languages": ["English", "SimpChinese"]
+      }
+    }
   }
 }
