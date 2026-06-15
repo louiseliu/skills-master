@@ -1,10 +1,16 @@
 name: Build
 
+# Manual-only trigger. Building all 4 platforms (macOS arm64 + Intel,
+# Linux, Windows) takes 30+ minutes of compute, so we deliberately do NOT
+# fire on every push. Use the "Run workflow" button on the Actions tab
+# when you actually want a binary, or rely on release.yml when tagging.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch / tag / SHA to build (defaults to current ref)"
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,6 +35,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - uses: actions/setup-node@v5
         with:

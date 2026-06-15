@@ -1,10 +1,13 @@
 name: CI
 
+# Runs on pull requests (so PR contributors get fast type/clippy feedback)
+# and on manual dispatch (so you can re-run after force-pushing or to
+# spot-check the main branch). We deliberately do NOT trigger on every
+# push to main — per maintainer preference, only manual builds.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
