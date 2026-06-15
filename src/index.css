@@ -233,6 +233,34 @@
     0 12px 40px oklch(0 0 0 / 25%);
 }
 
+/*
+ * Dialog / Modal surface — much more opaque than glass-elevated to ensure
+ * text readability over any background content. Used by SyncToAgentsDialog,
+ * DeleteSkillDialog, BulkSyncDialog, etc.
+ */
+.glass-dialog {
+  background: oklch(0.99 0.002 265 / 98%);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid oklch(0.85 0.005 265);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 90%) inset,
+    0 8px 24px oklch(0 0 0 / 8%),
+    0 24px 64px oklch(0 0 0 / 12%);
+  color: oklch(0.13 0.02 265);
+}
+.dark .glass-dialog {
+  background: oklch(0.16 0.015 265 / 98%);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid oklch(0.28 0.015 265);
+  box-shadow:
+    0 1px 0 oklch(1 0.01 265 / 8%) inset,
+    0 8px 24px oklch(0 0 0 / 40%),
+    0 24px 64px oklch(0 0 0 / 50%);
+  color: oklch(0.93 0.008 265);
+}
+
 /* Glass hover - lifts and brightens */
 .glass-hover {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -453,6 +481,39 @@
 }
 .animate-fade-in-up {
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Typewriter caret — slim vertical blink used while AI is streaming */
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+.animate-caret {
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  vertical-align: -0.12em;
+  margin-left: 1px;
+  background: currentColor;
+  animation: caret-blink 1s steps(1, end) infinite;
+  border-radius: 1px;
+}
+
+/* Progress bar — indeterminate shimmer used while AI is thinking */
+@keyframes progress-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* ─────────────────────────────────────────────

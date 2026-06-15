@@ -19,6 +19,92 @@ pub struct ParsedSkillMd {
     pub metadata: Option<Value>,
     pub body: String,
     pub asset_dirs: SkillDirAssets,
+    /// Normalized tag list, merged from frontmatter `tags`/`category`/`keywords`.
+    /// All values are normalized (lowercased, trimmed, deduplicated).
+    pub tags: Vec<String>,
+}
+
+/// Normalize a single tag string for dedup-stable comparison.
+///
+/// Pipeline:
+///   1. trim whitespace, strip leading `#`
+///   2. fold common separators (`-`, `_`, `/`, `\`, `·`, `.`) into spaces
+///      — so `ai-coding`, `ai_coding`, `ai/coding`, `AI Coding` all collapse
+///      onto the same key `ai coding`
+///   3. lowercase (ASCII case-fold, leaves CJK untouched)
+///   4. collapse runs of whitespace (any Unicode whitespace) into a single space
+///   5. drop whitespace between consecutive CJK characters
+///      — so `打开 网站` and `打开网站` collapse to the same key
+///      — preserves whitespace at CJK↔Latin boundaries so `ai 编程` stays readable
+///
+/// Returns `None` for empty / punctuation-only inputs so callers can skip
+/// junk without an explicit check.
+pub fn normalize_tag(raw: &str) -> Option<String> {
+    let s = raw.trim().trim_start_matches('#').trim();
+    if s.is_empty() {
+        return None;
+    }
+    // Fold ASCII + common CJK separators into spaces.
+    let unified: String = s
+        .chars()
+        .map(|c| match c {
+            '-' | '_' | '/' | '\\' | '·' | '.' | '．' | '。' | '、' => ' ',
+            c => c,
+        })
+        .collect();
+    let lower = unified.to_lowercase();
+    let collapsed: String = lower
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    // CJK-aware space removal: drop spaces sitting between two CJK chars.
+    // We walk char-by-char so we can peek both neighbors without index math.
+    let chars: Vec<char> = collapsed.chars().collect();
+    let mut out = String::with_capacity(collapsed.len());
+    for i in 0..chars.len() {
+        let c = chars[i];
+        if c == ' ' {
+            let prev = (i > 0).then(|| chars[i - 1]);
+            let next = chars.get(i + 1).copied();
+            if let (Some(p), Some(n)) = (prev, next) {
+                if is_cjk(p) && is_cjk(n) {
+                    // skip space between two CJK runs
+                    continue;
+                }
+            }
+        }
+        out.push(c);
+    }
+    let trimmed = out.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Conservative CJK detection: covers CJK Unified Ideographs (incl. extensions
+/// A and B), Hiragana, Katakana, and Hangul. Good enough for tag dedup.
+fn is_cjk(c: char) -> bool {
+    let n = c as u32;
+    (0x4E00..=0x9FFF).contains(&n)         // CJK Unified Ideographs
+        || (0x3400..=0x4DBF).contains(&n)  // CJK Extension A
+        || (0x20000..=0x2A6DF).contains(&n) // CJK Extension B
+        || (0x3040..=0x309F).contains(&n)  // Hiragana
+        || (0x30A0..=0x30FF).contains(&n)  // Katakana
+        || (0xAC00..=0xD7AF).contains(&n)  // Hangul
+}
+
+/// Deduplicate while preserving first-seen order.
+pub fn dedup_tags(input: Vec<String>) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::with_capacity(input.len());
+    for t in input {
+        if seen.insert(t.clone()) {
+            out.push(t);
+        }
+    }
+    out
 }
 
 #[derive(Debug, Error)]
@@ -34,6 +120,37 @@ struct Frontmatter {
     name: Option<String>,
     description: Option<String>,
     metadata: Option<Value>,
+    /// Free-form fields scraped for tags. Accepts either a YAML list
+    /// (`tags: [a, b]`) or a comma/space-separated string (`tags: "a, b"`).
+    #[serde(default)]
+    tags: Option<TagSpec>,
+    #[serde(default)]
+    category: Option<TagSpec>,
+    #[serde(default)]
+    keywords: Option<TagSpec>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum TagSpec {
+    Many(Vec<String>),
+    One(String),
+}
+
+impl TagSpec {
+    fn into_iter_strings(self) -> Box<dyn Iterator<Item = String>> {
+        match self {
+            TagSpec::Many(v) => Box::new(v.into_iter()),
+            TagSpec::One(s) => {
+                let parts: Vec<String> = s
+                    .split(|c: char| matches!(c, ',' | ';' | '|' | '\n'))
+                    .map(|p| p.trim().to_string())
+                    .filter(|p| !p.is_empty())
+                    .collect();
+                Box::new(parts.into_iter())
+            }
+        }
+    }
 }
 
 pub fn parse_skill_md_file(path: &Path) -> Result<ParsedSkillMd, SkillMdParseError> {
@@ -48,12 +165,27 @@ pub fn parse_skill_md_content(
 ) -> Result<ParsedSkillMd, SkillMdParseError> {
     let (frontmatter, body) = split_frontmatter(content)?;
     let asset_dirs = detect_asset_dirs(base_dir);
+
+    let mut collected: Vec<String> = Vec::new();
+    for spec in [frontmatter.tags, frontmatter.category, frontmatter.keywords]
+        .into_iter()
+        .flatten()
+    {
+        for raw in spec.into_iter_strings() {
+            if let Some(n) = normalize_tag(&raw) {
+                collected.push(n);
+            }
+        }
+    }
+    let tags = dedup_tags(collected);
+
     Ok(ParsedSkillMd {
         name: frontmatter.name,
         description: frontmatter.description,
         metadata: frontmatter.metadata,
         body,
         asset_dirs,
+        tags,
     })
 }
 
@@ -167,6 +299,102 @@ Hello
         let parsed = parse_skill_md_content("", &dir).expect("parse");
         assert!(parsed.name.is_none());
         assert_eq!(parsed.body, "");
+    }
+
+    #[test]
+    fn parse_tags_list_form() {
+        let dir = test_dir("tags-list");
+        let content = r#"---
+name: t
+tags:
+  - AI编程
+  - Database
+  - "ai 编程"
+keywords: ["devops", "ci/cd"]
+category: 工具
+---
+body
+"#;
+        let parsed = parse_skill_md_content(content, &dir).expect("parse");
+        // ai编程 should dedup with "ai 编程" (case + whitespace normalize)
+        assert!(parsed.tags.contains(&"ai编程".to_string()) || parsed.tags.contains(&"ai 编程".to_string()));
+        assert!(parsed.tags.contains(&"database".to_string()));
+        assert!(parsed.tags.contains(&"devops".to_string()));
+        assert!(parsed.tags.contains(&"工具".to_string()));
+    }
+
+    #[test]
+    fn parse_tags_string_form() {
+        let dir = test_dir("tags-string");
+        let content = r#"---
+name: t
+tags: "frontend, react, ui"
+---
+"#;
+        let parsed = parse_skill_md_content(content, &dir).expect("parse");
+        assert_eq!(parsed.tags.len(), 3);
+        assert!(parsed.tags.contains(&"frontend".to_string()));
+        assert!(parsed.tags.contains(&"react".to_string()));
+        assert!(parsed.tags.contains(&"ui".to_string()));
+    }
+
+    #[test]
+    fn normalize_strips_hash_and_lowers() {
+        assert_eq!(normalize_tag("  #AI 编程  "), Some("ai 编程".to_string()));
+        assert_eq!(normalize_tag(""), None);
+        assert_eq!(normalize_tag("   "), None);
+        assert_eq!(normalize_tag("#"), None);
+    }
+
+    #[test]
+    fn normalize_collapses_separators() {
+        // Separator variants all dedup to the same form
+        assert_eq!(normalize_tag("ai-coding"), Some("ai coding".to_string()));
+        assert_eq!(normalize_tag("ai_coding"), Some("ai coding".to_string()));
+        assert_eq!(normalize_tag("AI/Coding"), Some("ai coding".to_string()));
+        assert_eq!(normalize_tag("AI Coding"), Some("ai coding".to_string()));
+        assert_eq!(normalize_tag("ai-_/Coding"), Some("ai coding".to_string()));
+        // CJK separators
+        assert_eq!(normalize_tag("ai·编程"), Some("ai 编程".to_string()));
+        assert_eq!(normalize_tag("ai。编程"), Some("ai 编程".to_string()));
+    }
+
+    #[test]
+    fn dedup_collapses_separator_variants() {
+        // After normalize, dedup_tags should leave a single entry
+        let inputs = vec![
+            normalize_tag("ai-coding").unwrap(),
+            normalize_tag("AI Coding").unwrap(),
+            normalize_tag("ai_coding").unwrap(),
+        ];
+        let out = dedup_tags(inputs);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0], "ai coding");
+    }
+
+    #[test]
+    fn normalize_strips_cjk_inner_whitespace() {
+        // CJK 字之间的空格被吃掉，方便 dedup
+        assert_eq!(normalize_tag("打开 网站"), Some("打开网站".to_string()));
+        assert_eq!(normalize_tag("打开网站"), Some("打开网站".to_string()));
+        assert_eq!(normalize_tag("打开  网站"), Some("打开网站".to_string()));
+        // CJK 与 Latin 之间的空格保留（保持可读性）
+        assert_eq!(normalize_tag("ai 编程"), Some("ai 编程".to_string()));
+        assert_eq!(normalize_tag("AI 编程"), Some("ai 编程".to_string()));
+        // 混合情况
+        assert_eq!(normalize_tag("打开 网站 ai"), Some("打开网站 ai".to_string()));
+    }
+
+    #[test]
+    fn dedup_cjk_with_and_without_inner_space() {
+        let inputs = vec![
+            normalize_tag("打开网站").unwrap(),
+            normalize_tag("打开 网站").unwrap(),
+            normalize_tag("  打开  网站  ").unwrap(),
+        ];
+        let out = dedup_tags(inputs);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0], "打开网站");
     }
 
     #[test]

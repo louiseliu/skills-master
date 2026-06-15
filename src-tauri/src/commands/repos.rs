@@ -478,6 +478,7 @@ fn list_repo_skills_sync(repo_id_param: String) -> Result<Vec<Skill>, String> {
             collection: None,
             scope: SkillScope::default(),
             installations: Vec::new(),
+            tags: parsed.tags,
         });
     }
 

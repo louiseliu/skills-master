@@ -31,3 +31,10 @@ dist-ssr
 
 # OS files
 Thumbs.db
+
+# Backup artifacts (created by icon refresh scripts etc.)
+**/.backup-*/
+
+# Local-only tooling
+mcp-shrimp-task-manager/
+

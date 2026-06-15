@@ -13,6 +13,27 @@ pub struct RepoEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AiConfig {
+    pub enabled: bool,
+    /// "glm" | "openai" | "custom"
+    pub provider: Option<String>,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NetworkConfig {
+    /// 启用 HTTP/HTTPS 代理
+    pub proxy_enabled: bool,
+    /// 代理 URL，如 "http://127.0.0.1:7890" 或 "socks5://127.0.0.1:1080"
+    pub proxy_url: Option<String>,
+    /// 启用 GitHub raw 加速代理
+    pub github_proxy_enabled: bool,
+    /// GitHub 加速前缀，如 "https://ghproxy.com/" 或 "https://gh.api.99988866.xyz/"
+    pub github_proxy_prefix: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppSettings {
     pub theme: Option<String>,
     pub language: Option<String>,
@@ -20,6 +41,8 @@ pub struct AppSettings {
     pub repos: Option<Vec<RepoEntry>>,
     /// "minimize" | "quit" | None (ask every time)
     pub close_action: Option<String>,
+    pub ai: Option<AiConfig>,
+    pub network: Option<NetworkConfig>,
 }
 
 fn settings_path() -> PathBuf {

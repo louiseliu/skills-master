@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use super::cache::{read_cache, read_cache_stale, write_cache};
 use super::MarketplaceSkill;
+use crate::network::build_blocking_client;
 
 #[derive(Debug, Error)]
 pub enum SkillHubError {
@@ -18,9 +19,7 @@ pub enum SkillHubError {
 const BASE_URL: &str = "https://api.skillhub.cn/api/v1";
 
 fn http_client() -> Result<Client, reqwest::Error> {
-    Client::builder()
-        .user_agent("SkillsMaster/1.0")
-        .build()
+    build_blocking_client("SkillsMaster/1.0")
 }
 
 /// Fetch showcase listing from SkillHub (e.g. "hot" for hot_downloads)

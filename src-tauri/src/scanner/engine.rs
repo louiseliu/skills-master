@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use crate::models::agent::AgentConfig;
+use crate::commands::tags::load_overrides_or_empty;
 use crate::installer::install::read_provenance;
+use crate::models::agent::AgentConfig;
 use crate::models::skill::{Skill, SkillInstallation, SkillScope, SkillSource};
 use crate::parser::skillmd::parse_skill_md_file;
 
@@ -99,6 +100,9 @@ fn is_symlink(path: &Path) -> bool {
 pub fn scan_all_skills(configs: &[AgentConfig]) -> Result<Vec<Skill>, ScannerError> {
     let mut dedup: HashMap<String, Skill> = HashMap::new();
     let provenance = read_provenance();
+    // Load user tag overrides once per scan. If the file is corrupt we
+    // silently fall back to an empty map — never break scanning over tags.
+    let tag_overrides = load_overrides_or_empty();
 
     // Pass 1: Scan each agent's own directories (direct installations)
     for agent in configs.iter().filter(|cfg| cfg.detected || !cfg.global_paths.is_empty()) {
@@ -107,7 +111,7 @@ pub fn scan_all_skills(configs: &[AgentConfig]) -> Result<Vec<Skill>, ScannerErr
             if !root_path.exists() {
                 continue;
             }
-            scan_skill_md_root(&root_path, agent, &mut dedup, &provenance)?;
+            scan_skill_md_root(&root_path, agent, &mut dedup, &provenance, &tag_overrides)?;
         }
     }
 
@@ -124,6 +128,7 @@ pub fn scan_all_skills(configs: &[AgentConfig]) -> Result<Vec<Skill>, ScannerErr
                 &readable.source_agent,
                 &mut dedup,
                 &provenance,
+                &tag_overrides,
             )?;
         }
     }
@@ -133,6 +138,18 @@ pub fn scan_all_skills(configs: &[AgentConfig]) -> Result<Vec<Skill>, ScannerErr
     Ok(items)
 }
 
+/// Resolve effective tags for a skill: user override wins, otherwise frontmatter default.
+fn effective_tags(
+    skill_id: &str,
+    frontmatter_tags: &[String],
+    overrides: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    if let Some(over) = overrides.get(skill_id) {
+        return over.clone();
+    }
+    frontmatter_tags.to_vec()
+}
+
 /// Scan a readable directory for inherited skills (read-only, from another agent or shared).
 fn scan_inherited_root(
     root: &Path,
@@ -140,6 +157,7 @@ fn scan_inherited_root(
     source_agent: &str,
     dedup: &mut HashMap<String, Skill>,
     provenance: &HashMap<String, serde_json::Value>,
+    tag_overrides: &HashMap<String, Vec<String>>,
 ) -> Result<(), ScannerError> {
     for dir in fs::read_dir(root)?.flatten() {
         let skill_dir = dir.path();
@@ -180,6 +198,8 @@ fn scan_inherited_root(
             inherited_from: Some(source_agent.to_string()),
         };
 
+        let tags = effective_tags(&dir_name, &parsed.tags, tag_overrides);
+
         merge_skill(
             dedup,
             dir_name.clone(),
@@ -193,6 +213,7 @@ fn scan_inherited_root(
                 collection,
                 scope: SkillScope::SharedGlobal,
                 installations: vec![installation],
+                tags,
             },
         );
     }
@@ -204,6 +225,7 @@ fn scan_skill_md_root(
     agent: &AgentConfig,
     dedup: &mut HashMap<String, Skill>,
     provenance: &HashMap<String, serde_json::Value>,
+    tag_overrides: &HashMap<String, Vec<String>>,
 ) -> Result<(), ScannerError> {
     for dir in fs::read_dir(root)? {
         let dir = dir?;
@@ -260,6 +282,8 @@ fn scan_skill_md_root(
             .unwrap_or("unknown-skill")
             .to_string();
 
+        let tags = effective_tags(&skill_id, &parsed.tags, tag_overrides);
+
         merge_skill(
             dedup,
             dir_name,
@@ -275,6 +299,7 @@ fn scan_skill_md_root(
                     agent: agent.slug.clone(),
                 },
                 installations: vec![installation],
+                tags,
             },
         );
     }
@@ -362,6 +387,16 @@ fn merge_skill(dedup: &mut HashMap<String, Skill>, key: String, incoming: Skill)
         // Preserve collection from whichever side has it
         if existing.collection.is_none() && incoming.collection.is_some() {
             existing.collection = incoming.collection;
+        }
+        // Merge tags (defensive: should be identical, but union just in case)
+        if !incoming.tags.is_empty() {
+            let mut seen: std::collections::HashSet<String> =
+                existing.tags.iter().cloned().collect();
+            for t in incoming.tags {
+                if seen.insert(t.clone()) {
+                    existing.tags.push(t);
+                }
+            }
         }
         for inst in incoming.installations {
             let dominated = existing

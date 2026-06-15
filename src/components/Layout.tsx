@@ -1,18 +1,17 @@
-import { NavLink, Outlet, useSearchParams } from "react-router-dom";
-import { memo, useMemo, useState, useCallback, useRef } from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { LayoutDashboard, Puzzle, Store, Settings, GitBranch, FolderOpen } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
-import { getAgentIcon } from "@/lib/agentIcons";
 import { Button } from "@/components/ui/button";
 import ImportWizard from "@/components/ImportWizard";
 import { useResizable } from "@/hooks/useResizable";
 import ResizeHandle from "@/components/ResizeHandle";
 import { useAgents } from "@/hooks/useAgents";
-import { useSkills, allAgents } from "@/hooks/useSkills";
+import { useSkills } from "@/hooks/useSkills";
 
 // Hoisted outside component — stable reference, no re-creation per render
 const NAV_LINK_BASE = "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium border outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-[color,background-color,border-color,box-shadow,opacity] duration-150";
@@ -23,14 +22,6 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? NAV_LINK_ACTIVE : NAV_LINK_INACTIVE;
 }
 
-// Extracted component — avoids IIFE and inline component per agent
-const AgentIcon = memo(function AgentIcon({ slug }: { slug: string }) {
-  const icon = getAgentIcon(slug);
-  return icon.type === "component"
-    ? <icon.Component className="size-4 rounded-[3px]" aria-hidden="true" />
-    : <img src={icon.src} alt="" className={`size-4 rounded-[3px] ${icon.monochrome ? "dark:invert" : ""}`} />;
-});
-
 const isMac = navigator.platform.toLowerCase().includes("mac");
 
 export default function Layout() {
@@ -38,25 +29,8 @@ export default function Layout() {
   const [importMode, setImportMode] = useState<"git" | "local" | null>(null);
   const [importLocalPath, setImportLocalPath] = useState<string | null>(null);
   const pickingFolder = useRef(false);
-  const { data: agents, isLoading: agentsLoading } = useAgents();
+  const { isLoading: agentsLoading } = useAgents();
   const { data: skills, isLoading: skillsLoading } = useSkills();
-  const [searchParams] = useSearchParams();
-
-  const detectedAgents = useMemo(
-    () => agents?.filter((a) => a.detected) ?? [],
-    [agents],
-  );
-
-  // Count skills per agent (direct + inherited = all available)
-  const skillCountByAgent = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const skill of skills ?? []) {
-      for (const slug of allAgents(skill)) {
-        counts.set(slug, (counts.get(slug) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [skills]);
 
   const sidebar = useResizable({
     initial: 200,
@@ -89,9 +63,6 @@ export default function Layout() {
     }
   }, []);
 
-  // Determine which agent is currently selected from URL
-  const activeAgentSlug = searchParams.get("agent");
-
   const loading = agentsLoading || skillsLoading;
 
   return (
@@ -120,23 +91,14 @@ export default function Layout() {
         {loading ? (
           /* ── Sidebar skeleton ── */
           <div className="flex flex-1 flex-col px-3 pb-3 animate-pulse">
-            {/* Import button placeholders */}
             <div className="space-y-1.5 pb-3">
               <div className="h-8 rounded-xl bg-muted/50" />
               <div className="h-8 rounded-xl bg-muted/50" />
             </div>
-            {/* Nav item placeholders */}
             <div className="space-y-1">
               <div className="h-9 rounded-xl bg-muted/40" />
               <div className="h-9 rounded-xl bg-muted/40" />
               <div className="h-9 rounded-xl bg-muted/40" />
-            </div>
-            {/* Agent section placeholder */}
-            <div className="mt-4 space-y-1">
-              <div className="h-3 w-16 rounded bg-muted/30 mx-3 mb-2" />
-              <div className="h-9 rounded-xl bg-muted/30" />
-              <div className="h-9 rounded-xl bg-muted/30" />
-              <div className="h-9 rounded-xl bg-muted/30" />
             </div>
             <div className="flex-1" />
             <div className="h-9 rounded-xl bg-muted/40" />
@@ -173,10 +135,7 @@ export default function Layout() {
                 {t("sidebar.dashboard")}
               </NavLink>
 
-              <NavLink to="/skills" end className={({ isActive }) => {
-                const reallyActive = isActive && !activeAgentSlug;
-                return navLinkClass({ isActive: reallyActive });
-              }}>
+              <NavLink to="/skills" className={navLinkClass}>
                 <Puzzle className="size-4" aria-hidden="true" />
                 {t("sidebar.skills")}
                 {skills && (
@@ -190,34 +149,6 @@ export default function Layout() {
                 <Store className="size-4" aria-hidden="true" />
                 {t("sidebar.marketplace")}
               </NavLink>
-
-              {/* Agents section */}
-              {detectedAgents.length > 0 && (
-                <div className="mt-4">
-                  <h2 className="px-3 mb-2 text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">
-                    {t("sidebar.agents")}
-                  </h2>
-                  <div className="flex flex-col gap-0.5">
-                    {detectedAgents.map((agent) => {
-                      const count = skillCountByAgent.get(agent.slug) ?? 0;
-                      const isActive = activeAgentSlug === agent.slug;
-                      return (
-                        <NavLink
-                          key={agent.slug}
-                          to={`/skills?agent=${agent.slug}`}
-                          className={() => navLinkClass({ isActive })}
-                        >
-                          <AgentIcon slug={agent.slug} />
-                          <span className="truncate">{agent.name}</span>
-                          <span className="ml-auto text-[10px] tabular-nums text-muted-foreground/60">
-                            {count}
-                          </span>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Spacer */}
               <div className="flex-1" />

@@ -6,6 +6,7 @@ use thiserror::Error;
 
 use super::cache::{read_cache, read_cache_stale, write_cache};
 use super::MarketplaceSkill;
+use crate::network::build_blocking_client;
 
 #[derive(Debug, Error)]
 pub enum ClawHubError {
@@ -20,9 +21,7 @@ pub enum ClawHubError {
 const BASE_URL: &str = "https://clawhub.ai/api/v1";
 
 fn http_client() -> Result<Client, reqwest::Error> {
-    Client::builder()
-        .user_agent("SkillsApp")
-        .build()
+    build_blocking_client("SkillsApp")
 }
 
 /// Browse ClawHub skills with optional sort/direction/limit

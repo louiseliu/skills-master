@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Trash2, Check, Globe, GitBranch, RefreshCw, Palette, Info, ExternalLink, X as XIcon } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Check, Globe, GitBranch, RefreshCw, Palette, Info, ExternalLink, X as XIcon, Scale, Mail } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
 import { useRepos, useRemoveRepo, useSyncRepo } from "@/hooks/useRepos";
+import AISettingsPanel from "@/components/AISettingsPanel";
+import NetworkSettingsPanel from "@/components/NetworkSettingsPanel";
 
 interface AppSettings {
   theme: string | null;
@@ -160,6 +162,12 @@ export default function SettingsPage() {
           })}
         </div>
       </section>
+
+      {/* AI Assistant */}
+      <AISettingsPanel />
+
+      {/* Network */}
+      <NetworkSettingsPanel />
 
       {/* Language */}
       <section className="rounded-2xl p-5 glass-panel glass-shine-always space-y-3">
@@ -332,6 +340,37 @@ export default function SettingsPage() {
           github.com/louiseliu/skills-master
           <ExternalLink className="size-3" />
         </button>
+
+        <div className="pt-3 border-t border-black/[0.06] dark:border-white/[0.06] space-y-2">
+          <div className="flex items-center gap-2 text-xs">
+            <Scale className="size-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{t("settings.licenseLabel")}:</span>
+            <button
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline cursor-pointer"
+              onClick={() => openUrl("https://github.com/louiseliu/skills-master/blob/main/LICENSE")}
+            >
+              {t("settings.licenseName")}
+              <ExternalLink className="size-3" />
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground pl-5.5">
+            {t("settings.licenseNote")}
+          </p>
+          <div className="flex items-center gap-2 text-xs pt-1">
+            <span className="rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-medium">
+              {t("settings.commercialLicense")}
+            </span>
+            <span className="text-muted-foreground">{t("settings.commercialLicenseHint")}</span>
+          </div>
+          <button
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer"
+            onClick={() => openUrl("mailto:liuguolin2008@gmail.com?subject=SkillsMaster%20Commercial%20License%20Inquiry")}
+          >
+            <Mail className="size-3" />
+            liuguolin2008@gmail.com
+            <ExternalLink className="size-3" />
+          </button>
+        </div>
       </section>
 
     </div>

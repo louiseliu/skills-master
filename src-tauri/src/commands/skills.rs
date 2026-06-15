@@ -240,27 +240,73 @@ pub async fn install_from_git(
     .map_err(|e| format!("task failed: {e}"))?
 }
 
-/// Fetch SKILL.md from a GitHub repository.
+/// Build candidate raw-file URLs for a skill across well-known Git hosts.
 ///
-/// When `skill_name` is provided, tries `skills/{skill_name}/SKILL.md` first
-/// (skills.sh mono-repo convention), then root `SKILL.md`.
+/// Different hosts use different raw-file URL templates:
+/// - GitHub:     `raw.githubusercontent.com/{user}/{repo}/{branch}/{path}`
+/// - Gitee:      `gitee.com/{user}/{repo}/raw/{branch}/{path}`
+/// - GitLab:     `{host}/{user}/{repo}/-/raw/{branch}/{path}`  (works for self-hosted GitLab too)
+/// - Bitbucket:  `bitbucket.org/{user}/{repo}/raw/{branch}/{path}`
+/// - Unknown:    fall back to GitLab-style (most permissive for self-hosted)
+fn build_raw_candidate_urls(repo_url: &str, file_path: &str, branch: &str) -> Vec<String> {
+    let repo = repo_url.trim_end_matches('/').trim_end_matches(".git");
+
+    // Strip the scheme so we can split host vs path
+    let without_scheme = repo
+        .strip_prefix("https://")
+        .or_else(|| repo.strip_prefix("http://"))
+        .unwrap_or(repo);
+
+    let (host, path_part) = match without_scheme.split_once('/') {
+        Some((h, p)) => (h.to_lowercase(), p),
+        None => return Vec::new(),
+    };
+
+    let mut out = Vec::new();
+    if host == "github.com" {
+        // Primary: raw.githubusercontent.com
+        out.push(format!(
+            "https://raw.githubusercontent.com/{path_part}/{branch}/{file_path}"
+        ));
+    } else if host == "gitee.com" {
+        out.push(format!(
+            "https://gitee.com/{path_part}/raw/{branch}/{file_path}"
+        ));
+    } else if host == "bitbucket.org" {
+        out.push(format!(
+            "https://bitbucket.org/{path_part}/raw/{branch}/{file_path}"
+        ));
+    } else {
+        // GitLab.com or any self-hosted GitLab — also a sensible fallback for unknown hosts
+        out.push(format!(
+            "https://{host}/{path_part}/-/raw/{branch}/{file_path}"
+        ));
+        // Some self-hosted services use the simpler `/raw/` style; try as a backup
+        out.push(format!(
+            "https://{host}/{path_part}/raw/{branch}/{file_path}"
+        ));
+    }
+    out
+}
+
+/// Fetch SKILL.md from a hosted Git repository.
+///
+/// Supports GitHub, Gitee, GitLab (incl. self-hosted), Bitbucket, and falls back
+/// gracefully for unknown hosts. When `skill_name` is provided, tries
+/// `skills/{skill_name}/SKILL.md` first (skills.sh mono-repo convention),
+/// then root `SKILL.md`.
 #[tauri::command]
 pub async fn fetch_remote_skill_content(
     repo_url: String,
     skill_name: Option<String>,
 ) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .map_err(|e| e.to_string())?;
+        let client = crate::network::build_blocking_client_with_timeout(
+            "SkillsMaster/1.0",
+            std::time::Duration::from_secs(10),
+        )
+        .map_err(|e| e.to_string())?;
 
-        let repo = repo_url
-            .trim_end_matches('/')
-            .trim_end_matches(".git")
-            .to_string();
-
-        let raw_base = repo.replace("github.com", "raw.githubusercontent.com");
         let branches = ["main", "master"];
 
         let mut file_paths: Vec<String> = Vec::new();
@@ -271,16 +317,19 @@ pub async fn fetch_remote_skill_content(
 
         for path in &file_paths {
             for branch in &branches {
-                let url = format!("{raw_base}/{branch}/{path}");
-                match client.get(&url).send() {
-                    Ok(resp) if resp.status().is_success() => {
-                        if let Ok(text) = resp.text() {
-                            if !text.is_empty() {
-                                return Ok(text);
+                for raw_url in build_raw_candidate_urls(&repo_url, path, branch) {
+                    // GitHub-targeted URLs benefit from the proxy; non-GitHub URLs are passed through unchanged
+                    let url = crate::network::accelerate_github_url(&raw_url);
+                    match client.get(&url).send() {
+                        Ok(resp) if resp.status().is_success() => {
+                            if let Ok(text) = resp.text() {
+                                if !text.is_empty() {
+                                    return Ok(text);
+                                }
                             }
                         }
+                        _ => continue,
                     }
-                    _ => continue,
                 }
             }
         }
@@ -289,4 +338,60 @@ pub async fn fetch_remote_skill_content(
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?
+}
+
+#[cfg(test)]
+mod fetch_remote_tests {
+    use super::build_raw_candidate_urls;
+
+    #[test]
+    fn github_uses_raw_githubusercontent() {
+        let urls = build_raw_candidate_urls("https://github.com/user/repo.git", "SKILL.md", "main");
+        assert_eq!(
+            urls,
+            vec!["https://raw.githubusercontent.com/user/repo/main/SKILL.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn gitee_uses_raw_under_gitee() {
+        let urls = build_raw_candidate_urls("https://gitee.com/user/repo", "SKILL.md", "master");
+        assert_eq!(
+            urls,
+            vec!["https://gitee.com/user/repo/raw/master/SKILL.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn gitlab_uses_dash_raw_path() {
+        let urls = build_raw_candidate_urls(
+            "https://gitlab.com/group/repo.git",
+            "skills/x/SKILL.md",
+            "main",
+        );
+        assert!(urls.contains(
+            &"https://gitlab.com/group/repo/-/raw/main/skills/x/SKILL.md".to_string()
+        ));
+    }
+
+    #[test]
+    fn self_hosted_gitlab_works() {
+        let urls = build_raw_candidate_urls(
+            "https://git.example.com/team/repo.git",
+            "SKILL.md",
+            "main",
+        );
+        assert!(urls.iter().any(|u| u.contains("git.example.com")));
+        assert!(urls.iter().any(|u| u.contains("/-/raw/")));
+    }
+
+    #[test]
+    fn bitbucket_works() {
+        let urls =
+            build_raw_candidate_urls("https://bitbucket.org/user/repo", "SKILL.md", "main");
+        assert_eq!(
+            urls,
+            vec!["https://bitbucket.org/user/repo/raw/main/SKILL.md".to_string()]
+        );
+    }
 }

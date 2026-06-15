@@ -57,6 +57,10 @@ pub struct Skill {
     pub scope: SkillScope,
     /// Per-agent installation records
     pub installations: Vec<SkillInstallation>,
+    /// Effective tags = user override (if any) OR frontmatter tags.
+    /// All values are normalized (lowercased, trimmed, dedup).
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl Skill {

@@ -1,10 +1,10 @@
 use regex::Regex;
-use reqwest::blocking::Client;
 use serde::Deserialize;
 use thiserror::Error;
 
 use super::cache::{read_cache, read_cache_stale, write_cache};
 use super::MarketplaceSkill;
+use crate::network::build_blocking_client;
 
 #[derive(Debug, Error)]
 pub enum SkillsShError {
@@ -42,12 +42,12 @@ pub fn fetch_skillssh(sort: &str, page: u32) -> Result<Vec<MarketplaceSkill>, Sk
         "hot" => format!("https://skills.sh/hot?page={page}"),
         _ => format!("https://skills.sh/?page={page}"),
     };
-    let result = Client::builder()
-        .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
-        .build()?
-        .get(&url)
-        .send()
-        .and_then(|r| r.text());
+    let result = build_blocking_client(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    )?
+    .get(&url)
+    .send()
+    .and_then(|r| r.text());
 
     match result {
         Ok(html) => {
@@ -76,9 +76,7 @@ pub fn search_skillssh(query: &str) -> Result<Vec<MarketplaceSkill>, SkillsShErr
         "https://skills.sh/api/search?q={}&limit=50",
         urlencoding::encode(query)
     );
-    let result = Client::builder()
-        .user_agent("Mozilla/5.0")
-        .build()?
+    let result = build_blocking_client("Mozilla/5.0")?
         .get(&url)
         .header("Accept", "application/json")
         .send()

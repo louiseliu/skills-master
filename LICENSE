@@ -1,21 +1,171 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2025 AgentSkills Contributors
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright (c) 2025 五柳大叔 (Wuliu Dashu) and SkillsMaster Contributors
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Acceptance
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
+
+## Copyright License
+
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose. However, you may
+only distribute the software according to Distribution
+License and make changes or new works based on the software
+according to Changes and New Works License.
+
+## Distribution License
+
+The licensor grants you an additional copyright license
+to distribute copies of the software. Your license
+to distribute covers distributing the software with
+any changes or new works or programs you make under
+the Changes and New Works License.
+
+## Changes and New Works License
+
+The licensor grants you an additional copyright license
+to make changes and new works based on the software
+for any permitted purpose.
+
+## Patent License
+
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
+
+## Noncommercial Purposes
+
+Any noncommercial purpose is a permitted purpose.
+
+## Personal Uses
+
+Personal use for research, experiment, and testing for
+the benefit of public knowledge, personal study, private
+entertainment, hobby projects, amateur pursuits, or religious
+observance, without any anticipated commercial application,
+is use for a permitted purpose.
+
+## Noncommercial Organizations
+
+Use by any charitable organization, educational institution,
+public research organization, public safety or health
+organization, environmental protection organization,
+or government institution is use for a permitted purpose
+regardless of the source of funding or obligations resulting
+from the funding.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law.
+These terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+organizations that have control over, are under the control of,
+or are under common control with that organization.  **Control**
+means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote,
+contract, or otherwise.  Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.
+
+---
+
+## Commercial Use Notice (附加说明)
+
+The above PolyForm Noncommercial License 1.0.0 governs all use
+of this software. **Commercial use is NOT permitted under this
+license** and requires a separate commercial license from the
+copyright holder.
+
+以上 PolyForm Noncommercial License 1.0.0 适用于本软件的所有使用。
+**商业使用不在本许可证授权范围内**，必须另行获得商业授权。
+
+### What counts as Commercial Use / 何为「商业使用」
+
+Any use of the software that is **primarily intended for or
+directed toward commercial advantage or monetary compensation**,
+including but not limited to:
+
+任何**主要为获取商业利益或金钱回报**的使用，包括但不限于：
+
+- Internal use within a for-profit company / 营利性公司内部使用
+- Selling, licensing, or sublicensing the software, in whole or
+  in part / 销售、许可或再许可本软件（全部或部分）
+- Offering the software as a paid service or as part of a paid
+  product (SaaS, PaaS, hosted offering, etc.) / 将本软件作为付费
+  服务或付费产品的一部分提供（SaaS、PaaS、托管服务等）
+- Bundling with commercial hardware or software / 与商业硬件或
+  软件捆绑分发
+- Use by employees of a for-profit company in the course of their
+  employment / 营利性公司员工在工作过程中使用
+
+### How to Obtain a Commercial License / 如何获取商业授权
+
+For commercial licensing inquiries, please contact:
+
+商业授权咨询请联系：
+
+📧 **Email / 邮箱**: <liuguolin2008@gmail.com>
+
+Please include in your inquiry / 请在邮件中说明:
+
+1. Your organization name and website / 公司名称及网站
+2. Intended use case and scale / 计划的使用场景与规模
+3. Number of users / deployments / 使用人数 / 部署规模
+4. Your jurisdiction (for tax/contract purposes) / 所在司法管辖区
+
+We will respond within 5 business days with terms and pricing.
+我们会在 5 个工作日内回复授权条款与报价。

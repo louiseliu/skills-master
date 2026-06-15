@@ -23,6 +23,8 @@ export interface Skill {
   collection: string | null;
   scope: SkillScope;
   installations: SkillInstallation[];
+  /** Effective tags: user override if set, otherwise frontmatter defaults. */
+  tags: string[];
 }
 
 /** Direct (non-inherited) agent slugs */

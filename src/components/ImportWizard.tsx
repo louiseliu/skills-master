@@ -221,7 +221,7 @@ export default function ImportWizard({ mode, initialLocalPath, onClose }: Import
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 dark:bg-black/40 animate-backdrop-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 dark:bg-black/60 backdrop-blur-md animate-backdrop-in"
       role="presentation"
       onClick={busy ? undefined : handleClose}
     >
@@ -230,7 +230,7 @@ export default function ImportWizard({ mode, initialLocalPath, onClose }: Import
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-lg rounded-3xl p-6 space-y-4 outline-none animate-modal-in glass-elevated"
+        className="w-full max-w-lg rounded-3xl p-6 space-y-4 outline-none animate-modal-in glass-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -287,6 +287,33 @@ export default function ImportWizard({ mode, initialLocalPath, onClose }: Import
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               autoFocus
             />
+            {/* Multi-host support hint */}
+            <div className="rounded-lg bg-primary/5 border border-primary/15 px-2.5 py-2 space-y-1">
+              <p className="text-[11px] font-medium text-primary">
+                {t("repos.multiHostTitle")}
+              </p>
+              <p className="text-[10.5px] text-muted-foreground/85 leading-relaxed">
+                {t("repos.multiHostDesc")}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {[
+                  { label: "GitHub", url: "https://github.com/user/repo.git" },
+                  { label: "Gitee", url: "https://gitee.com/user/repo.git" },
+                  { label: "GitLab", url: "https://gitlab.com/user/repo.git" },
+                  { label: "Self-hosted", url: "https://git.your-company.com/team/repo.git" },
+                ].map((ex) => (
+                  <button
+                    key={ex.label}
+                    type="button"
+                    onClick={() => setUrl(ex.url)}
+                    className="inline-flex items-center rounded-full bg-black/4 dark:bg-white/6 hover:bg-primary/15 hover:text-primary px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                    title={ex.url}
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {error && (
               <p className="text-xs text-destructive">{error}</p>
             )}
@@ -540,7 +567,7 @@ const SkillCheckItem = memo(function SkillCheckItem({
   onToggle: (id: string) => void;
 }) {
   return (
-    <label className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer transition-colors">
+    <label className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-black/3 dark:hover:bg-white/4 cursor-pointer transition-colors">
       <input
         type="checkbox"
         checked={checked}
@@ -570,7 +597,7 @@ const AgentCheckItem = memo(function AgentCheckItem({
 }) {
   const icon = getAgentIcon(agent.slug);
   return (
-    <label className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer transition-colors">
+    <label className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-black/3 dark:hover:bg-white/4 cursor-pointer transition-colors">
       <input
         type="checkbox"
         checked={checked}

@@ -6,12 +6,13 @@
 
 <p align="center">
   跨平台桌面应用，统一管理 36 款 AI Agent 的技能。<br>
+  ✨ <strong>AI 加持</strong>的智能搜索与解读，让 SKILL.md 第一次「会说话」。<br>
   浏览、安装、同步、编辑，一站式搞定。
 </p>
 
 <p align="center">
   <a href="https://github.com/louiseliu/skills-master/releases"><img src="https://img.shields.io/github/v/release/louiseliu/skills-master?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/louiseliu/skills-master/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/louiseliu/skills-master/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange?style=flat-square" alt="License"></a>
   <a href="https://github.com/louiseliu/skills-master/stargazers"><img src="https://img.shields.io/github/stars/louiseliu/skills-master?style=flat-square" alt="Stars"></a>
 </p>
 
@@ -74,7 +75,20 @@
 | Tabbit | 社区 | AI 标签管理 |
 | JvsClaw | 社区 | Java 生态龙虾 |
 
-## 功能特性
+## ✨ 新功能（近期迭代）
+
+> 这一波重点把 AI 从「附加项」变成「核心交互」，让技能搜索 / 解读不再靠肉眼翻 markdown。
+
+- **🧠 AI 智能搜索** — 用自然语言提问，跨「本地技能 + 在线市场」联合检索，OpenAI 兼容多 provider（OpenAI / DeepSeek / 智谱 / 月之暗面 / 自定义 base_url 等）
+- **🌊 SSE 流式打字机** — 4 步进度可视化（收集 → 扫描 → 思考 → 润色），AI 输出实时 typewriter 流入，等待不再焦虑
+- **🤖 AI 技能解读** — 一键解释 SKILL.md：核心能力 / 何时触发 / 安装步骤 / 使用示例，告别"长文劝退"
+- **🔍 关键词降级搜索** — 未配置 AI 时自动 fallback 到本地关键词匹配，免配置即可用
+- **⚡ 一键启用 AI** — 保存 API Key 时自动开启 AI 能力，无需二次操作
+- **🌐 网络代理设置** — 内置 HTTP / HTTPS / SOCKS5 代理支持，自动探测系统代理，国内网络也能直连
+- **🪟 双向可拖拽布局** — 上下 + 左右 split panel 自由调整，长技能名 / 大段解读都能优雅展开
+- **📥 安装到指定 Agent** — 市场技能可精确选择安装目标，多 Agent 环境下井然有序
+
+## 核心功能
 
 - **仪表盘** — 一览所有 Agent 的安装状态与技能数量，龙虾家族自动分组折叠
 - **技能管理** — 查看、编辑、卸载技能，支持跨 Agent 一键同步
@@ -83,20 +97,6 @@
 - **文件监听** — 磁盘技能变动时自动刷新
 - **跨 Agent 同步** — 一键将技能同步到所有已安装 Agent
 - **批量更新** — 从 Git 上游一键更新所有技能
-
-## 界面预览
-
-<p align="center">
-  <img src="docs/images/dashboard-light-cn.png" width="48%" alt="仪表盘">
-  <img src="docs/images/skills-cn.png" width="48%" alt="技能管理">
-</p>
-<p align="center">
-  <img src="docs/images/marketplace-light-cn.png" width="48%" alt="技能市场">
-  <img src="docs/images/import-cn.png" width="48%" alt="导入视图">
-</p>
-<p align="center">
-  <img src="docs/images/setting-cn.png" width="48%" alt="设置">
-</p>
 
 ## 技术栈
 
@@ -181,4 +181,24 @@ npm run tauri build
 
 ## 许可证
 
-[MIT](./LICENSE)
+本项目基于 **[PolyForm Noncommercial License 1.0.0](./LICENSE)** 发布。
+
+### ✅ 免费使用场景
+
+- 个人学习、研究、实验、爱好项目
+- 学术机构、教育用途
+- 非营利组织、公共研究机构
+- 政府机构、公益组织
+
+### ❌ 需要商业授权的场景
+
+- 营利性公司内部生产环境使用
+- 将本软件作为付费产品 / SaaS / PaaS 服务对外提供
+- 销售、再许可或捆绑销售本软件
+- 公司员工在职务范围内使用
+
+### 📧 商业授权咨询
+
+如需商业授权，请联系：**<liuguolin2008@gmail.com>**
+
+请在邮件中说明公司名称、使用场景、规模与所在区域，我们会在 5 个工作日内回复授权条款与报价。

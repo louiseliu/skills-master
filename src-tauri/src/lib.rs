@@ -2,10 +2,12 @@ pub mod commands;
 pub mod installer;
 pub mod marketplace;
 pub mod models;
+pub mod network;
 pub mod parser;
 pub mod paths;
 pub mod registry;
 pub mod scanner;
+pub mod security;
 pub mod watcher;
 
 #[cfg(target_os = "macos")]
@@ -100,6 +102,22 @@ pub fn run() {
             commands::repos::sync_skill_repo,
             commands::repos::list_repo_skills,
             commands::repos::install_repo_skill,
+            commands::ai::ai_get_config,
+            commands::ai::ai_save_config,
+            commands::ai::ai_set_api_key,
+            commands::ai::ai_clear_api_key,
+            commands::ai::ai_test_connection,
+            commands::ai::ai_search_skills,
+            commands::ai::ai_search_unified,
+            commands::ai::ai_explain_skill,
+            commands::ai::ai_stream_search_explanation,
+            commands::ai::ai_stream_explain_summary,
+            commands::ai::ai_suggest_skill_tags,
+            commands::tags::list_skill_tag_overrides,
+            commands::tags::set_skill_tags,
+            commands::tags::add_skill_tag,
+            commands::tags::remove_skill_tag,
+            commands::tags::clear_skill_tag_override,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
