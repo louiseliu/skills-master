@@ -18,6 +18,20 @@
 
 ---
 
+## 致谢 / Acknowledgement
+
+本项目最初 fork 自
+[**chrlsio/agent-skills**](https://github.com/chrlsio/agent-skills)（MIT License），
+在此基础上进行了大量重构与功能扩展。衷心感谢上游作者的开源工作！
+详见 [NOTICE.md](./NOTICE.md)。
+
+> Originally forked from
+> [**chrlsio/agent-skills**](https://github.com/chrlsio/agent-skills) (MIT License),
+> with substantial refactoring and new features. Heartfelt thanks to the upstream
+> authors. See [NOTICE.md](./NOTICE.md) for full attribution.
+
+---
+
 ## 关于作者
 
 **五柳大叔** — 干的是未来事的大叔 🧓➡️🤖
