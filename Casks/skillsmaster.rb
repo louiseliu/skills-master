@@ -1,5 +1,5 @@
 cask "skillsmaster" do
-  version "0.9.0"
+  version "1.0.0"
   arch arm: "aarch64", intel: "x64"
   sha256 :no_check
 

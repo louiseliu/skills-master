@@ -57,7 +57,7 @@ Environment variables:
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | VERSION=0.1.8 bash
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | VERSION=1.0.0 bash
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | DRY_RUN=1 bash
 EOF
 }

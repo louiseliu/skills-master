@@ -44,13 +44,17 @@ APP_TAG="v${APP_VERSION}"
 
 README_EN_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.md")"
 README_EN_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.md")"
-README_ZH_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.zh-CN.md")"
-README_ZH_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.zh-CN.md")"
 
 [[ "$README_EN_SH_TAG" == "$APP_TAG" ]] || die "README.md install.sh tag mismatch: expected $APP_TAG, got $README_EN_SH_TAG"
 [[ "$README_EN_PS_TAG" == "$APP_TAG" ]] || die "README.md install.ps1 tag mismatch: expected $APP_TAG, got $README_EN_PS_TAG"
-[[ "$README_ZH_SH_TAG" == "$APP_TAG" ]] || die "README.zh-CN.md install.sh tag mismatch: expected $APP_TAG, got $README_ZH_SH_TAG"
-[[ "$README_ZH_PS_TAG" == "$APP_TAG" ]] || die "README.zh-CN.md install.ps1 tag mismatch: expected $APP_TAG, got $README_ZH_PS_TAG"
+
+# README.zh-CN.md is optional — only validate if the file exists.
+if [[ -f "README.zh-CN.md" ]]; then
+  README_ZH_SH_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.sh.*' "README.zh-CN.md")"
+  README_ZH_PS_TAG="$(extract_first '.*raw\.githubusercontent\.com/louiseliu/skills-master/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.ps1.*' "README.zh-CN.md")"
+  [[ "$README_ZH_SH_TAG" == "$APP_TAG" ]] || die "README.zh-CN.md install.sh tag mismatch: expected $APP_TAG, got $README_ZH_SH_TAG"
+  [[ "$README_ZH_PS_TAG" == "$APP_TAG" ]] || die "README.zh-CN.md install.ps1 tag mismatch: expected $APP_TAG, got $README_ZH_PS_TAG"
+fi
 
 INSTALL_SH_EXAMPLE_VERSION="$(extract_first '.*VERSION=([0-9]+\.[0-9]+\.[0-9]+)\s+bash.*' "install.sh")"
 INSTALL_PS1_EXAMPLE_VERSION="$(extract_first '.*\$Version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*' "install.ps1")"
