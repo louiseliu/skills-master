@@ -2,7 +2,7 @@
 # Usage: irm https://raw.githubusercontent.com/louiseliu/skills-master/main/install.ps1 | iex
 #
 # Optional variables (set before running):
-#   $Version = "1.0.1"   # Install specific version
+#   $Version = "1.0.2"   # Install specific version
 #   $DryRun = $true      # Preview commands without executing
 
 if (-not $Version) { $Version = "" }
@@ -11,7 +11,7 @@ if (-not $DryRun) { $DryRun = $false }
 $ErrorActionPreference = "Stop"
 
 $Repo = "louiseliu/skills-master"
-$AppName = "SkillsMaster"
+$AppName = "技能管家"
 $GithubApi = "https://api.github.com/repos/$Repo/releases"
 $script:ReleaseVersion = ""
 $script:DownloadUrl = ""
@@ -81,11 +81,15 @@ function Get-ReleaseVersion {
 
 function Build-FallbackAssets {
   $base = "https://github.com/$Repo/releases/download/v$($script:ReleaseVersion)"
+  # Filename prefix is the Chinese productName "技能管家"; URL-encoded form
+  # (%E6%8A%80%E8%83%BD%E7%AE%A1%E5%AE%B6) keeps PowerShell + Invoke-WebRequest
+  # happy across all Windows code pages.
+  $cn = "%E6%8A%80%E8%83%BD%E7%AE%A1%E5%AE%B6"
   return @(
-    @{ name = "SkillsMaster_$($script:ReleaseVersion)_x64-setup.exe"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_x64-setup.exe" },
-    @{ name = "SkillsMaster_$($script:ReleaseVersion)_x64_en-US.msi"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_x64_en-US.msi" },
-    @{ name = "SkillsMaster_$($script:ReleaseVersion)_arm64-setup.exe"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_arm64-setup.exe" },
-    @{ name = "SkillsMaster_$($script:ReleaseVersion)_arm64_en-US.msi"; url = "$base/SkillsMaster_$($script:ReleaseVersion)_arm64_en-US.msi" }
+    @{ name = "${cn}_$($script:ReleaseVersion)_x64-setup.exe"; url = "$base/${cn}_$($script:ReleaseVersion)_x64-setup.exe" },
+    @{ name = "${cn}_$($script:ReleaseVersion)_x64_en-US.msi"; url = "$base/${cn}_$($script:ReleaseVersion)_x64_en-US.msi" },
+    @{ name = "${cn}_$($script:ReleaseVersion)_arm64-setup.exe"; url = "$base/${cn}_$($script:ReleaseVersion)_arm64-setup.exe" },
+    @{ name = "${cn}_$($script:ReleaseVersion)_arm64_en-US.msi"; url = "$base/${cn}_$($script:ReleaseVersion)_arm64_en-US.msi" }
   )
 }
 

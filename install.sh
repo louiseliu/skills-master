@@ -3,7 +3,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/louiseliu/skills-master/main/install.sh | bash
 #
 # Environment variables:
-#   VERSION     - Install a specific version (e.g. "0.1.8" or "v0.1.8"), default: latest
+#   VERSION     - Install a specific version (e.g. "1.0.2" or "v1.0.2"), default: latest
 #   DRY_RUN     - Set to "1" to print commands without executing
 
 set -euo pipefail
@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 REPO="louiseliu/skills-master"
-APP_NAME="SkillsMaster"
+APP_NAME="技能管家"
 GITHUB_RELEASES_API="https://api.github.com/repos/${REPO}/releases"
 SCRIPT_VERSION="2.0.0"
 
@@ -52,12 +52,12 @@ Usage:
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
 
 Environment variables:
-  VERSION   Install specific version tag (e.g. 0.1.8 or v0.1.8), default: latest
+  VERSION   Install specific version tag (e.g. 1.0.2 or v1.0.2), default: latest
   DRY_RUN   Set to 1 to print commands without executing
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
-  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | VERSION=1.0.1 bash
+  curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | VERSION=1.0.2 bash
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | DRY_RUN=1 bash
 EOF
 }
@@ -152,15 +152,18 @@ extract_assets_from_json() {
 
 build_fallback_assets() {
   local base_url="https://github.com/${REPO}/releases/download/v${RELEASE_VERSION}"
+  # Filename prefix is the Chinese productName "技能管家"; we URL-encode it so
+  # curl and downstream tooling stay portable across locales / curl versions.
+  local cn="%E6%8A%80%E8%83%BD%E7%AE%A1%E5%AE%B6"
   cat <<EOF
-SkillsMaster_${RELEASE_VERSION}_aarch64.dmg	${base_url}/SkillsMaster_${RELEASE_VERSION}_aarch64.dmg
-SkillsMaster_${RELEASE_VERSION}_x64.dmg	${base_url}/SkillsMaster_${RELEASE_VERSION}_x64.dmg
-SkillsMaster_${RELEASE_VERSION}_amd64.deb	${base_url}/SkillsMaster_${RELEASE_VERSION}_amd64.deb
-SkillsMaster_${RELEASE_VERSION}_arm64.deb	${base_url}/SkillsMaster_${RELEASE_VERSION}_arm64.deb
-SkillsMaster-${RELEASE_VERSION}-1.x86_64.rpm	${base_url}/SkillsMaster-${RELEASE_VERSION}-1.x86_64.rpm
-SkillsMaster-${RELEASE_VERSION}-1.aarch64.rpm	${base_url}/SkillsMaster-${RELEASE_VERSION}-1.aarch64.rpm
-SkillsMaster_${RELEASE_VERSION}_amd64.AppImage	${base_url}/SkillsMaster_${RELEASE_VERSION}_amd64.AppImage
-SkillsMaster_${RELEASE_VERSION}_aarch64.AppImage	${base_url}/SkillsMaster_${RELEASE_VERSION}_aarch64.AppImage
+${cn}_${RELEASE_VERSION}_aarch64.dmg	${base_url}/${cn}_${RELEASE_VERSION}_aarch64.dmg
+${cn}_${RELEASE_VERSION}_x64.dmg	${base_url}/${cn}_${RELEASE_VERSION}_x64.dmg
+${cn}_${RELEASE_VERSION}_amd64.deb	${base_url}/${cn}_${RELEASE_VERSION}_amd64.deb
+${cn}_${RELEASE_VERSION}_arm64.deb	${base_url}/${cn}_${RELEASE_VERSION}_arm64.deb
+${cn}-${RELEASE_VERSION}-1.x86_64.rpm	${base_url}/${cn}-${RELEASE_VERSION}-1.x86_64.rpm
+${cn}-${RELEASE_VERSION}-1.aarch64.rpm	${base_url}/${cn}-${RELEASE_VERSION}-1.aarch64.rpm
+${cn}_${RELEASE_VERSION}_amd64.AppImage	${base_url}/${cn}_${RELEASE_VERSION}_amd64.AppImage
+${cn}_${RELEASE_VERSION}_aarch64.AppImage	${base_url}/${cn}_${RELEASE_VERSION}_aarch64.AppImage
 EOF
 }
 
@@ -305,7 +308,7 @@ install_macos() {
     echo -e "${YELLOW}[DRY-RUN]${NC} hdiutil attach \"$DOWNLOAD_PATH\" -nobrowse -noautoopen"
     echo -e "${YELLOW}[DRY-RUN]${NC} cp -R <mounted>/*.app /Applications/"
     echo -e "${YELLOW}[DRY-RUN]${NC} hdiutil detach <mounted>"
-    echo -e "${YELLOW}[DRY-RUN]${NC} sudo xattr -rd com.apple.quarantine \"/Applications/${APP_NAME}.app\""
+    echo -e "${YELLOW}[DRY-RUN]${NC} sudo xattr -rd com.apple.quarantine \"/Applications/技能管家.app\""
     return 0
   fi
 

@@ -63,10 +63,38 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Enable ad-hoc signing on macOS so M1/M2 (Apple Silicon) users can
+          # launch the .app immediately after install.sh removes the quarantine
+          # attribute. Without this, unsigned binaries are killed on launch
+          # by macOS on ARM hardware regardless of quarantine state.
+          APPLE_SIGNING_IDENTITY: "-"
         with:
           tagName: ${{ inputs.tag || github.ref_name }}
-          releaseName: "SkillsMaster ${{ inputs.tag || github.ref_name }}"
-          releaseBody: "See the assets below to download and install."
+          releaseName: "技能管家 ${{ inputs.tag || github.ref_name }}"
+          releaseBody: |
+            一行命令安装（推荐，自动处理 macOS Gatekeeper）：
+
+            **macOS / Linux**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/louiseliu/skills-master/${{ inputs.tag || github.ref_name }}/install.sh | bash
+            ```
+
+            **Windows (PowerShell)**
+            ```powershell
+            irm https://raw.githubusercontent.com/louiseliu/skills-master/${{ inputs.tag || github.ref_name }}/install.ps1 | iex
+            ```
+
+            **Homebrew (macOS)**
+            ```bash
+            brew install --cask --no-quarantine louiseliu/skills-master/skillsmaster
+            ```
+
+            ---
+
+            See the assets below for direct downloads. If you drag the `.dmg` to `/Applications` manually on macOS, you may need to run:
+            ```bash
+            sudo xattr -rd com.apple.quarantine "/Applications/技能管家.app"
+            ```
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}

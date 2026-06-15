@@ -126,6 +126,9 @@ targets = [
 
 for rel_path, replacements in targets:
     path = root / rel_path
+    if not path.exists():
+        print(f"[sync-version] skip {rel_path} (not present)")
+        continue
     text = path.read_text(encoding="utf-8")
     updated = text
     for pattern, replacement in replacements:

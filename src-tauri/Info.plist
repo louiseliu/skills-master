@@ -1,27 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Custom Info.plist fragment — Tauri merges these keys into the
+  Custom Info.plist fragment — Tauri 2 merges these keys into the
   auto-generated Contents/Info.plist at bundle time.
 
-  We intentionally override ONLY the user-facing display names so the
-  app appears as "技能管家" in the Dock, Finder, Launchpad, Spotlight,
-  Mission Control, Cmd-Tab switcher and the system menu bar.
+  Why we still keep this file even after productName="技能管家":
 
-  The physical bundle name remains "SkillsMaster.app" (driven by
-  tauri.conf.json > productName), which keeps the Homebrew Cask,
-  install.sh/install.ps1 download URLs and the release.yml artifact
-  paths working without any changes.
+  1. CFBundleDisplayName is NOT auto-derived from productName by Tauri 2 —
+     productName drives CFBundleName, but DisplayName is what Finder /
+     Spotlight / "Get Info" actually shows. We set it explicitly here so
+     the two stay in sync regardless of Tauri's internal changes.
+
+  2. NSHumanReadableCopyright shows up in the "About" pane.
+
+  3. LSRequiresCarbon / CSResourcesFileMapped are legacy Carbon-era keys
+     that some versions of cargo-packager / tauri-bundler default to true.
+     They are harmless on modern macOS but can confuse code-signing /
+     notarization tooling. We explicitly set both to false to override the
+     auto-generated values and keep the bundle clean.
+
+  4. NSSupportsAutomaticGraphicsSwitching = true is the modern default that
+     replaces those Carbon keys for GPU power-management on Apple Silicon.
+
+  5. Apple Silicon (M1+) hard-rejects any binary without a code signature.
+     Ad-hoc signing is configured in tauri.conf.json -> bundle.macOS.signingIdentity="-".
 
   Do NOT add CFBundleIdentifier / CFBundleVersion / CFBundleExecutable
-  / CFBundlePackageType here — Tauri generates those and overrides
+  / CFBundlePackageType here — Tauri auto-generates those and overrides
   would break codesigning / auto-update.
 -->
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key>
-  <string>技能管家</string>
   <key>CFBundleDisplayName</key>
   <string>技能管家</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright © 2026 五柳大叔. All rights reserved.</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.developer-tools</string>
+  <key>LSRequiresCarbon</key>
+  <false/>
+  <key>CSResourcesFileMapped</key>
+  <false/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
 </dict>
 </plist>
